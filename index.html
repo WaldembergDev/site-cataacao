@@ -1,674 +1,1225 @@
 <!DOCTYPE html>
-<html class="wide wow-animation" lang="en">
+<html class="wide wow-animation" lang="pt-BR">
   <head>
-    <title>Herber</title>
-    <meta name="format-detection" content="telephone=no">
-    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta charset="utf-8">
+    <script>document.documentElement.classList.add('ca-js');</script>
+    <title>CataAção | Pontos de coleta de resíduos e denúncias de descarte irregular</title>
+    <meta name="description" content="Mapa colaborativo com os pontos de coleta de resíduos da cidade e as denúncias de moradores sobre descarte irregular e falta de locais para descarte.">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="format-detection" content="telephone=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <link rel="icon" href="images/favicon.ico" type="image/x-icon">
-    <!-- Stylesheets-->
-    <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Poppins:300,400,500">
+    <!-- Fontes: Barlow foi desenhada a partir da sinalização viária — combina com o tema urbano -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,600;0,700;1,400&family=Barlow+Semi+Condensed:wght@600;700&display=swap">
+    <!-- Estilos do template (mantidos para o cabeçalho e o comportamento do menu) -->
     <link rel="stylesheet" href="css/bootstrap.css">
     <link rel="stylesheet" href="css/fonts.css">
     <link rel="stylesheet" href="css/style.css">
-    <!--[if lt IE 10]>
-    <div style="background: #212121; padding: 10px 0; box-shadow: 3px 3px 5px 0 rgba(0,0,0,.3); clear: both; text-align:center; position: relative; z-index:1;"><a href="http://windows.microsoft.com/en-US/internet-explorer/"><img src="images/ie8-panel/warning_bar_0000_us.jpg" border="0" height="42" width="820" alt="You are using an outdated browser. For a faster, safer browsing experience, upgrade for free today."></a></div>
-    <script src="js/html5shiv.min.js"></script>
-    <![endif]-->
+    <!-- Leaflet (mapa) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+    <style>
+      /* =========================================================
+         CataAção — estilos próprios (prefixo .ca / ca-)
+         Tudo que é novo fica isolado dentro de .ca para não
+         conflitar com o style.css do template.
+         ========================================================= */
+      :root {
+        --ca-asfalto: #22303a;
+        --ca-asfalto-2: #2c3d49;
+        --ca-papel: #f3f6f5;
+        --ca-tinta: #1c2830;
+        --ca-cinza: #56646e;
+        --ca-borda: #d5dde1;
+        --ca-verde: #1b7f4c;
+        --ca-verde-hover: #146239;
+        --ca-denuncia: #c2255c;
+        --ca-denuncia-hover: #9c1c49;
+        --ca-foco: #f59f00;
+        /* Cores da coleta seletiva (Resolução Conama 275/2001) */
+        --bin-azul: #1c64c8;
+        --bin-vermelho: #d6332a;
+        --bin-verde: #1f8a3b;
+        --bin-amarelo: #f2c12e;
+        --bin-laranja: #f08c00;
+        --bin-marrom: #7b4a2a;
+        --bin-preto: #212529;
+        --bin-teal: #0b7285;
+        --ca-faixa: linear-gradient(90deg, var(--bin-azul) 0 16.66%, var(--bin-vermelho) 0 33.33%, var(--bin-verde) 0 50%, var(--bin-amarelo) 0 66.66%, var(--bin-laranja) 0 83.33%, var(--bin-marrom) 0);
+      }
+
+      html { scroll-behavior: smooth; }
+      body { font-family: 'Barlow', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+      body { margin: 0; }
+
+      /* ---------- Cabeçalho próprio (não depende do CSS do template) ---------- */
+      .ca-topo { position: sticky; top: 0; z-index: 1000; background: #fff; border-bottom: 1px solid var(--ca-borda); }
+      .ca-topo .ca-topo-inner { display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 72px; }
+      .ca-topo .ca-brand { color: var(--ca-tinta); text-decoration: none; }
+      .ca-topo .ca-nav { display: flex; align-items: center; gap: 16px; }
+      .ca-topo .ca-nav ul { display: flex; align-items: center; gap: 4px; list-style: none; margin: 0; padding: 0; }
+      .ca-topo .ca-nav a:not(.ca-btn) { display: block; padding: 10px 14px; border-radius: 6px; color: var(--ca-tinta); text-decoration: none; font-family: 'Barlow Semi Condensed', 'Barlow', sans-serif; font-weight: 600; font-size: 1.1rem; line-height: 1.2; }
+      .ca-topo .ca-nav a:not(.ca-btn):hover { background: var(--ca-papel); color: var(--ca-tinta); }
+      .ca-topo .ca-nav a.is-atual { color: var(--ca-verde); box-shadow: inset 0 -3px 0 var(--ca-verde); border-radius: 6px 6px 0 0; }
+      .ca-topo .ca-menu-btn { display: none; align-items: center; gap: 10px; padding: 9px 12px; border: 1px solid var(--ca-borda); border-radius: 6px; background: #fff; color: var(--ca-tinta); font: 600 1.05rem/1 'Barlow Semi Condensed', 'Barlow', sans-serif; cursor: pointer; }
+      .ca-menu-icone, .ca-menu-icone::before, .ca-menu-icone::after { display: block; width: 18px; height: 2px; border-radius: 1px; background: currentColor; transition: transform .2s, background-color .2s; }
+      .ca-menu-icone { position: relative; }
+      .ca-menu-icone::before, .ca-menu-icone::after { content: ""; position: absolute; left: 0; }
+      .ca-menu-icone::before { top: -6px; }
+      .ca-menu-icone::after { top: 6px; }
+      .ca-menu-btn[aria-expanded="true"] .ca-menu-icone { background: transparent; }
+      .ca-menu-btn[aria-expanded="true"] .ca-menu-icone::before { transform: translateY(6px) rotate(45deg); }
+      .ca-menu-btn[aria-expanded="true"] .ca-menu-icone::after { transform: translateY(-6px) rotate(-45deg); }
+      @media (max-width: 860px) {
+        .ca-topo .ca-topo-inner { min-height: 60px; flex-wrap: wrap; gap: 0 16px; }
+        .ca-topo .ca-brand { font-size: 1.4rem; }
+        .ca-topo .ca-brand-mark { width: 28px; height: 28px; }
+        .ca-topo .ca-nav { flex-basis: 100%; flex-direction: column; align-items: stretch; gap: 0; padding-bottom: 16px; }
+        .ca-topo .ca-nav ul { flex-direction: column; align-items: stretch; gap: 0; }
+        .ca-topo .ca-nav a:not(.ca-btn) { padding: 14px 4px; border-bottom: 1px solid var(--ca-borda); border-radius: 0; }
+        .ca-topo .ca-nav a.is-atual { box-shadow: inset 3px 0 0 var(--ca-verde); padding-left: 14px; }
+        .ca-topo .ca-nav .ca-btn { margin-top: 16px; padding: 13px 22px; font-size: 1.1rem; }
+        .ca-js .ca-topo .ca-menu-btn { display: inline-flex; }
+        .ca-js .ca-topo .ca-nav { display: none; position: absolute; left: 0; right: 0; top: 100%; padding: 4px 20px 20px; background: #fff; border-bottom: 1px solid var(--ca-borda); box-shadow: 0 12px 24px rgba(28, 40, 48, .12); }
+        .ca-js .ca-topo .ca-nav.is-aberto { display: flex; }
+      }
+
+      .ca-skip { position: absolute; left: -9999px; top: 0; z-index: 10000; background: var(--ca-tinta); color: #fff; padding: 12px 16px; }
+      .ca-skip:focus { left: 0; color: #fff; }
+
+      .ca-brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ca-tinta); font-family: 'Barlow Semi Condensed', 'Barlow', sans-serif; font-weight: 700; font-size: 1.6rem; line-height: 1; letter-spacing: -.01em; }
+      .ca-brand:hover { color: var(--ca-tinta); text-decoration: none; }
+      .ca-brand-mark { width: 34px; height: 34px; flex: none; }
+
+      /* ---------- Base ---------- */
+      .ca { color: var(--ca-tinta); font-family: 'Barlow', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-size: 17px; line-height: 1.6; }
+      .ca :where(h1, h2, h3, h4, p, ul, ol, figure, fieldset, legend) { margin: 0; }
+      .ca h1, .ca h2, .ca h3, .ca h4 { font-family: 'Barlow Semi Condensed', 'Barlow', system-ui, sans-serif; font-weight: 600; line-height: 1.1; letter-spacing: -.005em; color: inherit; }
+      .ca h2 { font-size: clamp(1.9rem, 3.4vw, 2.6rem); }
+      .ca h3 { font-size: 1.35rem; }
+      .ca a { color: var(--ca-verde); text-decoration: underline; text-underline-offset: 2px; }
+      .ca a:hover { color: var(--ca-verde-hover); }
+      .ca :focus-visible { outline: 3px solid var(--ca-foco); outline-offset: 2px; }
+      .ca section[id] { scroll-margin-top: 84px; }
+      .ca .ca-container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+      .ca .ca-section { padding: 88px 0; background: #fff; }
+      .ca .ca-section-alt { background: var(--ca-papel); }
+      .ca .ca-head { max-width: 68ch; margin-bottom: 36px; }
+      .ca .ca-head p { margin-top: 12px; color: var(--ca-cinza); font-size: 1.1rem; }
+      .ca .ca-small { font-size: .9rem; color: var(--ca-cinza); }
+      .ca code { font-family: inherit; font-weight: 700; background: none; color: inherit; padding: 0; font-size: inherit; }
+
+      /* Neutraliza o plugin de checkbox do template (script.js), se existir */
+      .ca input[type="checkbox"].checkbox-custom { position: static !important; opacity: 1 !important; width: 18px !important; height: 18px !important; margin: 0 !important; clip: auto !important; pointer-events: auto !important; -webkit-appearance: checkbox !important; appearance: auto !important; }
+      .ca .checkbox-custom-dummy { display: none !important; }
+      .ca input[type="checkbox"] { accent-color: var(--ca-verde); width: 18px; height: 18px; flex: none; }
+
+      /* ---------- Botões ---------- */
+      .ca .ca-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 13px 22px; border-radius: 6px; border: 2px solid transparent; font-family: 'Barlow Semi Condensed', 'Barlow', sans-serif; font-weight: 600; font-size: 1.1rem; line-height: 1.2; text-decoration: none; cursor: pointer; transition: background-color .15s, border-color .15s, color .15s; }
+      .ca .ca-btn-verde { background: var(--ca-verde); color: #fff; }
+      .ca .ca-btn-verde:hover { background: var(--ca-verde-hover); color: #fff; }
+      .ca .ca-btn-denuncia { background: var(--ca-denuncia); color: #fff; }
+      .ca .ca-btn-denuncia:hover { background: var(--ca-denuncia-hover); color: #fff; }
+      .ca .ca-btn-contorno { background: #fff; color: var(--ca-verde); border-color: currentColor; }
+      .ca .ca-btn-contorno:hover { background: #eef6f1; color: var(--ca-verde-hover); }
+      .ca .ca-btn-sm { padding: 7px 14px; font-size: 1rem; }
+      .ca .ca-btn-bloco { width: 100%; }
+      .ca .ca-btn:disabled { opacity: .6; cursor: not-allowed; }
+      .ca .ca-link { background: none; border: 0; padding: 0; font: inherit; color: var(--ca-verde); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+      .ca .ca-link:hover { color: var(--ca-verde-hover); }
+
+      /* ---------- Hero ---------- */
+      .ca .ca-hero { position: relative; background: var(--ca-asfalto); color: #fff; padding: 88px 0 80px; }
+      .ca .ca-hero::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 8px; background: var(--ca-faixa); }
+      .ca .ca-hero h1 { font-size: clamp(2.5rem, 6vw, 4rem); line-height: 1.02; max-width: 18ch; color: #fff; }
+      .ca .ca-lead { margin-top: 22px; max-width: 60ch; font-size: 1.2rem; color: #d3dde2; }
+      .ca .ca-caminhos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin-top: 48px; }
+      .ca .ca-caminho { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; background: var(--ca-asfalto-2); border-top: 4px solid var(--bin-verde); border-radius: 0 0 6px 6px; padding: 28px; }
+      .ca .ca-caminho-denuncia { border-top-color: var(--ca-denuncia); }
+      .ca .ca-caminho h2 { font-size: 1.7rem; color: #fff; }
+      .ca .ca-caminho p { color: #c6d1d7; }
+      .ca .ca-caminho .ca-btn { margin-top: auto; }
+
+      /* ---------- Mapa ---------- */
+      .ca .ca-aviso-demo { margin-bottom: 20px; padding: 12px 16px; border-left: 4px solid var(--bin-amarelo); background: #fff8db; font-size: .95rem; }
+      .ca .ca-mapa-layout { display: grid; grid-template-columns: 290px minmax(0, 1fr); gap: 24px; align-items: start; }
+      .ca .ca-painel { display: flex; flex-direction: column; gap: 22px; }
+      .ca .ca-fieldset { border: 0; padding: 0; min-width: 0; }
+      .ca .ca-fieldset legend { float: none; width: auto; padding: 0; margin-bottom: 8px; font-family: 'Barlow Semi Condensed', 'Barlow', sans-serif; font-weight: 600; font-size: 1.15rem; line-height: 1.2; }
+      .ca .ca-filtro { display: flex; align-items: center; gap: 10px; margin: 0; padding: 7px 0; border-bottom: 1px solid var(--ca-borda); font-size: 1rem; cursor: pointer; }
+      .ca .ca-filtro-nome { flex: 1; }
+      .ca .ca-qtd { font-variant-numeric: tabular-nums; color: var(--ca-cinza); font-size: .9rem; }
+      .ca .ca-filtro-acoes { display: flex; gap: 20px; margin-top: 10px; font-size: .95rem; }
+      .ca .ca-saida-proximo:empty { display: none; }
+      .ca .ca-lista summary { cursor: pointer; font-weight: 600; }
+      .ca .ca-lista ul { list-style: none; padding: 0; margin-top: 10px; max-height: 240px; overflow: auto; }
+      .ca .ca-lista li { padding: 7px 0; border-bottom: 1px solid var(--ca-borda); }
+      .ca .ca-lista li span { display: block; }
+      .ca .ca-mapa { height: 580px; border: 1px solid var(--ca-borda); border-radius: 6px; position: relative; z-index: 0; background: #e9eef0; }
+      .ca .ca-mapa-erro { padding: 24px; color: var(--ca-cinza); }
+      .ca .ca-legenda { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; margin-top: 12px; font-size: .9rem; color: var(--ca-cinza); }
+      .ca .ca-legenda > span { display: inline-flex; align-items: center; gap: 8px; }
+      .ca .ca-legenda-nota { flex-basis: 100%; }
+      .ca .leaflet-container { font-family: inherit; font-size: 15px; }
+
+      /* Cores por tipo de resíduo (usadas no mapa, filtros e guia) */
+      .ca-cor { display: inline-block; box-sizing: border-box; width: 18px; height: 18px; flex: none; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, .4); }
+      .ca-cat-reciclaveis { background: conic-gradient(var(--bin-azul) 0 25%, var(--bin-vermelho) 0 50%, var(--bin-verde) 0 75%, var(--bin-amarelo) 0); }
+      .ca-cat-eletronicos { background: var(--bin-teal); }
+      .ca-cat-pilhas { background: var(--bin-laranja); }
+      .ca-cat-oleo { background: var(--bin-marrom); }
+      .ca-cat-entulho { background: var(--bin-preto); }
+      .ca-cat-medicamentos { background: #fff; color: #343a40; display: inline-grid; place-items: center; }
+      .ca-cat-medicamentos::after { content: "+"; font: 700 12px/1 'Barlow', sans-serif; }
+
+      /* Marcadores do mapa (o Leaflet usa transform no elemento externo; por isso a forma fica num filho) */
+      .ca-pin-ponto { box-sizing: border-box; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, .5), 0 2px 4px rgba(0, 0, 0, .3); }
+      .ca-pin-ponto.ca-cat-medicamentos { display: grid; }
+      .ca-pin-denuncia { background: none; border: 0; }
+      .ca-pin-denuncia .ca-losango { position: absolute; inset: 3px; box-sizing: border-box; background: var(--st, var(--ca-denuncia)); border: 2px solid #fff; border-radius: 3px; transform: rotate(45deg); box-shadow: 0 0 0 1px rgba(0, 0, 0, .45), 0 2px 4px rgba(0, 0, 0, .3); }
+      .ca-pin-denuncia b { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font: 700 13px/1 'Barlow', sans-serif; }
+      .ca-status-encaminhada { --st: #e8590c; }
+      .ca-status-resolvida { --st: var(--bin-verde); }
+      .ca-pin-novo .ca-losango { animation: ca-pulso 1.2s ease-out 3; }
+      @keyframes ca-pulso { from { box-shadow: 0 0 0 0 rgba(194, 37, 92, .7); } to { box-shadow: 0 0 0 18px rgba(194, 37, 92, 0); } }
+      .ca-losango-legenda { display: inline-block; width: 13px; height: 13px; margin: 0 3px; background: var(--st, var(--ca-denuncia)); border-radius: 2px; transform: rotate(45deg); }
+      .ca-pin-local { background: none; border: 0; }
+      .ca-pin-local span { position: absolute; left: 0; top: 0; box-sizing: border-box; width: 22px; height: 22px; background: var(--ca-denuncia); border: 3px solid #fff; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 1px 4px rgba(0, 0, 0, .45); }
+      .ca-pin-usuario { box-sizing: border-box; border-radius: 50%; background: #1c7ed6; border: 3px solid #fff; box-shadow: 0 0 0 6px rgba(28, 126, 214, .25); }
+
+      /* Popups */
+      .ca .leaflet-popup-content { margin: 14px 16px; line-height: 1.45; min-width: 220px; }
+      .ca .ca-popup h4 { font-size: 1.25rem; margin: 2px 0 6px; }
+      .ca .ca-popup p { margin: 4px 0; }
+      .ca .ca-popup-tipo { font-size: .85rem; font-weight: 600; color: var(--ca-cinza); }
+      .ca .ca-popup ul { list-style: none; padding: 0; margin: 4px 0 8px; }
+      .ca .ca-popup li { display: flex; align-items: center; gap: 8px; margin: 3px 0; }
+      .ca .ca-popup .ca-cor { width: 14px; height: 14px; }
+      .ca .ca-popup .ca-btn { margin-top: 8px; }
+      .ca .ca-popup-demo { display: inline-block; margin-top: 8px; padding: 1px 6px; border-radius: 3px; background: #fff3bf; color: #5c4400; font-size: .8rem; }
+      .ca .ca-status { display: inline-block; padding: 1px 8px; border-radius: 3px; background: var(--st); color: #fff; font-weight: 600; font-size: .85rem; }
+
+      /* ---------- Guia de descarte ---------- */
+      .ca .ca-guia { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+      .ca .ca-residuo { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 18px; background: #fff; padding: 24px 24px 24px 20px; border-radius: 6px; }
+      .ca .ca-residuo .ca-cor { width: 44px; height: 44px; border-width: 4px; }
+      .ca .ca-residuo .ca-cat-medicamentos::after { font-size: 24px; }
+      .ca .ca-residuo-sub { margin-top: 2px; color: var(--ca-cinza); }
+      .ca .ca-residuo ul { list-style: disc; padding-left: 1.1em; margin-top: 12px; }
+      .ca .ca-residuo li + li { margin-top: 6px; }
+      .ca .ca-residuo .ca-link { display: inline-block; margin-top: 14px; }
+      .ca .ca-base-legal { margin-top: 28px; max-width: 80ch; }
+
+      /* ---------- Denúncia ---------- */
+      .ca .ca-denuncia-layout { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 48px; align-items: start; }
+      .ca .ca-intro p + p { margin-top: 14px; }
+      .ca .ca-intro h3 { margin-top: 28px; margin-bottom: 10px; }
+      .ca .ca-marcada { list-style: disc; padding-left: 1.2em; }
+      .ca .ca-marcada li + li { margin-top: 6px; }
+      .ca .ca-emergencia { margin-top: 28px; padding: 16px 18px; border-left: 4px solid var(--bin-laranja); background: #fff4e6; }
+      .ca .ca-emergencia p + p { margin-top: 6px; }
+      .ca .ca-form { background: #fff; border: 1px solid var(--ca-borda); border-radius: 6px; padding: 32px; }
+      .ca .ca-form h3 { font-size: 1.7rem; margin-bottom: 24px; }
+      .ca .ca-campo + .ca-campo { margin-top: 22px; }
+      .ca .ca-rotulo { display: block; margin: 0 0 6px; font-weight: 600; font-size: 1rem; }
+      .ca .ca-req { color: var(--ca-denuncia); }
+      .ca .ca-opcional { font-weight: 400; color: var(--ca-cinza); }
+      .ca .ca-entrada { display: block; box-sizing: border-box; width: 100%; padding: 11px 13px; border: 1px solid #b3c0c7; border-radius: 6px; background: #fff; color: var(--ca-tinta); font: inherit; font-size: 1rem; line-height: 1.4; }
+      .ca textarea.ca-entrada { resize: vertical; min-height: 110px; }
+      .ca .ca-entrada:focus { border-color: var(--ca-verde); outline: 3px solid rgba(27, 127, 76, .25); outline-offset: 0; }
+      .ca .ca-entrada[aria-invalid="true"], .ca .ca-minimapa[aria-invalid="true"] { border-color: #c92a2a; }
+      .ca .ca-ajuda { margin-top: 6px; font-size: .9rem; color: var(--ca-cinza); }
+      .ca .ca-ajuda-linha { display: flex; justify-content: space-between; gap: 12px; }
+      .ca .ca-erro { margin-top: 6px; font-size: .9rem; font-weight: 600; color: #c92a2a; }
+      .ca .ca-minimapa { height: 270px; margin-top: 8px; border: 1px solid #b3c0c7; border-radius: 6px; position: relative; z-index: 0; background: #e9eef0; }
+      .ca .ca-local-acoes { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: 10px; }
+      .ca .ca-local-acoes p { flex: 1; min-width: 200px; }
+      .ca .ca-foto-preview:empty { display: none; }
+      .ca .ca-foto-preview { display: flex; align-items: center; gap: 14px; margin-top: 10px; }
+      .ca .ca-foto-preview img { width: 96px; height: 96px; object-fit: cover; border-radius: 6px; border: 1px solid var(--ca-borda); }
+      .ca .ca-check { display: flex; align-items: flex-start; gap: 12px; margin: 0; font-size: .95rem; cursor: pointer; }
+      .ca .ca-check input { margin-top: 3px; }
+      .ca .ca-enviar { margin-top: 28px; }
+      .ca .ca-saida:not(:empty) { margin-top: 16px; }
+      .ca .ca-sucesso { padding: 14px 16px; border-left: 4px solid var(--bin-verde); background: #ebfbee; }
+      .ca .ca-falha { padding: 14px 16px; border-left: 4px solid #c92a2a; background: #fff5f5; color: #8a1c1c; }
+
+      /* ---------- Etapas da denúncia ---------- */
+      .ca .ca-etapas { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); counter-reset: etapa; }
+      .ca .ca-etapas li { counter-increment: etapa; position: relative; padding: 50px 20px 0 0; }
+      .ca .ca-etapas li::before { content: counter(etapa); position: absolute; top: 0; left: 0; z-index: 1; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--st, var(--ca-denuncia)); color: #fff; font-weight: 700; }
+      .ca .ca-etapas li::after { content: ""; position: absolute; top: 16px; left: 34px; right: 0; height: 2px; background: var(--ca-borda); }
+      .ca .ca-etapas li:last-child::after { display: none; }
+      .ca .ca-etapas strong { display: block; font-family: 'Barlow Semi Condensed', 'Barlow', sans-serif; font-size: 1.3rem; font-weight: 600; }
+      .ca .ca-etapas span { display: block; margin-top: 4px; color: var(--ca-cinza); }
+      .ca .ca-regras { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; margin-top: 56px; padding-top: 32px; border-top: 1px solid var(--ca-borda); }
+      .ca .ca-regras p { margin-top: 8px; color: var(--ca-cinza); }
+
+      /* ---------- Chamada final ---------- */
+      .ca .ca-cta { padding: 64px 0; background: #fff; border-top: 1px solid var(--ca-borda); }
+      .ca .ca-cta-inner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 24px; }
+      .ca .ca-cta p { margin-top: 10px; max-width: 62ch; color: var(--ca-cinza); }
+
+      /* ---------- Rodapé ---------- */
+      .ca-rodape { position: relative; background: var(--ca-asfalto); color: #c6d1d7; padding-top: 64px; }
+      .ca-rodape::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 8px; background: var(--ca-faixa); }
+      .ca-rodape .ca { color: #c6d1d7; }
+      .ca-rodape .ca a { color: #fff; }
+      .ca-rodape .ca a:hover { color: #b2f2bb; }
+      .ca-rodape .ca h2 { font-size: 1.15rem; color: #fff; margin-bottom: 12px; }
+      .ca-rodape .ca-brand { color: #fff; text-decoration: none; }
+      .ca-rodape .ca-rodape-grid { display: grid; grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr)); gap: 40px; }
+      .ca-rodape .ca-rodape-sobre p { margin-top: 16px; max-width: 44ch; }
+      .ca-rodape ul { list-style: none; padding: 0; }
+      .ca-rodape li + li { margin-top: 8px; }
+      .ca-rodape .ca-rodape-base { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; margin-top: 48px; padding-top: 20px; padding-bottom: 24px; border-top: 1px solid rgba(255, 255, 255, .12); font-size: .9rem; }
+
+      /* ---------- Responsivo ---------- */
+      @media (max-width: 960px) {
+        .ca .ca-denuncia-layout { grid-template-columns: 1fr; gap: 32px; }
+        .ca .ca-mapa-layout { grid-template-columns: 1fr; }
+        .ca .ca-mapa-wrap { order: -1; }
+        .ca .ca-mapa { height: 440px; }
+        .ca .ca-regras { grid-template-columns: 1fr; gap: 24px; }
+        .ca-rodape .ca-rodape-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      }
+      @media (max-width: 760px) {
+        .ca .ca-hero { padding: 64px 0 56px; }
+        .ca .ca-caminhos, .ca .ca-guia { grid-template-columns: 1fr; }
+        .ca .ca-section { padding: 64px 0; }
+        .ca .ca-form { padding: 22px; }
+        .ca .ca-etapas { grid-template-columns: 1fr; gap: 24px; }
+        .ca .ca-etapas li { padding: 2px 0 0 50px; }
+        .ca .ca-etapas li::after { display: none; }
+      }
+      @media (max-width: 560px) {
+        .ca-rodape .ca-rodape-grid { grid-template-columns: 1fr; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        html { scroll-behavior: auto; }
+        .ca *, .ca-pin-novo .ca-losango { transition: none !important; animation: none !important; }
+      }
+    </style>
   </head>
   <body>
+    <a class="ca-skip" href="#conteudo">Pular para o conteúdo</a>
     <div class="preloader">
       <div class="preloader-body">
-        <div class="cssload-container"><span></span><span></span><span></span><span></span>
-        </div>
+        <div class="cssload-container"><span></span><span></span><span></span><span></span></div>
       </div>
     </div>
-    <div class="page"><a class="section section-banner d-none d-xl-block" href="https://www.templatemonster.com/intense-multipurpose-html-template.html" style="background-image: url(images/banner/background-04-1920x60.jpg); background-image: -webkit-image-set( url(images/banner/background-04-1920x60.jpg) 1x, url(images/banner/background-04-3840x120.jpg) 2x )"><img src="images/banner/foreground-04-1600x60.png" srcset="images/banner/foreground-04-1600x60.png 1x, images/banner/foreground-04-3200x120.png 2x" alt="" width="1600" height="310"></a>
-      <!-- Page Header-->
-      <header class="section page-header">
-        <!-- RD Navbar-->
-        <div class="rd-navbar-wrap rd-navbar-modern-wrap">
-          <nav class="rd-navbar rd-navbar-modern" data-layout="rd-navbar-fixed" data-sm-layout="rd-navbar-fixed" data-md-layout="rd-navbar-fixed" data-md-device-layout="rd-navbar-fixed" data-lg-layout="rd-navbar-static" data-lg-device-layout="rd-navbar-fixed" data-xl-layout="rd-navbar-static" data-xl-device-layout="rd-navbar-static" data-xxl-layout="rd-navbar-static" data-xxl-device-layout="rd-navbar-static" data-lg-stick-up-offset="46px" data-xl-stick-up-offset="46px" data-xxl-stick-up-offset="70px" data-lg-stick-up="true" data-xl-stick-up="true" data-xxl-stick-up="true">
-            <div class="rd-navbar-main-outer">
-              <div class="rd-navbar-main">
-                <!-- RD Navbar Panel-->
-                <div class="rd-navbar-panel">
-                  <!-- RD Navbar Toggle-->
-                  <button class="rd-navbar-toggle" data-rd-navbar-toggle=".rd-navbar-nav-wrap"><span></span></button>
-                  <!-- RD Navbar Brand-->
-                  <div class="rd-navbar-brand"><a class="brand" href="index.html"><img src="images/logo-default-196x47.png" alt="" width="196" height="47"/></a></div>
-                </div>
-                <div class="rd-navbar-main-element">
-                  <div class="rd-navbar-nav-wrap">
-                    <!-- RD Navbar Basket-->
-                    <div class="rd-navbar-basket-wrap">
-                      <div class="cart-inline">
-                        <div class="cart-inline-header">
-                          <h5 class="cart-inline-title">In cart:<span> 2</span> Products</h5>
-                          <h6 class="cart-inline-title">Total price:<span> $800</span></h6>
-                        </div>
-                        <div class="cart-inline-body">
-                          <div class="cart-inline-item">
-                            <div class="unit align-items-center">
-                              <div class="unit-left"><a class="cart-inline-figure" href="#"><img src="images/product-mini-1-108x100.png" alt="" width="108" height="100"/></a></div>
-                              <div class="unit-body">
-                                <h6 class="cart-inline-name"><a href="#">Blueberries</a></h6>
-                                <div>
-                                  <div class="group-xs group-inline-middle">
-                                    <div class="table-cart-stepper">
-                                      <input class="form-input" type="number" data-zeros="true" value="1" min="1" max="1000">
-                                    </div>
-                                    <h6 class="cart-inline-title">$550</h6>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                          <div class="cart-inline-item">
-                            <div class="unit align-items-center">
-                              <div class="unit-left"><a class="cart-inline-figure" href="#"><img src="images/product-mini-2-108x100.png" alt="" width="108" height="100"/></a></div>
-                              <div class="unit-body">
-                                <h6 class="cart-inline-name"><a href="#">Avocados</a></h6>
-                                <div>
-                                  <div class="group-xs group-inline-middle">
-                                    <div class="table-cart-stepper">
-                                      <input class="form-input" type="number" data-zeros="true" value="1" min="1" max="1000">
-                                    </div>
-                                    <h6 class="cart-inline-title">$250</h6>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div class="cart-inline-footer">
-                          <div class="group-sm"><a class="button button-md button-default-outline-2 button-wapasha" href="#">Go to cart</a><a class="button button-md button-primary button-pipaluk" href="#">Checkout</a></div>
-                        </div>
-                      </div>
-                    </div><a class="rd-navbar-basket rd-navbar-basket-mobile fl-bigmug-line-shopping198" href="#"><span>2</span></a>
-                    <!-- RD Navbar Search-->
-                    <div class="rd-navbar-search">
-                      <button class="rd-navbar-search-toggle" data-rd-navbar-toggle=".rd-navbar-search"><span></span></button>
-                      <form class="rd-search" action="#">
-                        <div class="form-wrap">
-                          <label class="form-label" for="rd-navbar-search-form-input">Search...</label>
-                          <input class="rd-navbar-search-form-input form-input" id="rd-navbar-search-form-input" type="text" name="search">
-                          <button class="rd-search-form-submit fl-bigmug-line-search74" type="submit"></button>
-                        </div>
-                      </form>
-                    </div>
-                    <!-- RD Navbar Nav-->
-                    <ul class="rd-navbar-nav">
-                      <li class="rd-nav-item active"><a class="rd-nav-link" href="index.html">Início</a>
-                      </li>
-                      <li class="rd-nav-item"><a class="rd-nav-link" href="about-us.html">Sobre Nós</a>
-                      </li>
-                      <li class="rd-nav-item"><a class="rd-nav-link" href="typography.html">Informações</a>
-                      </li>
-                      <li class="rd-nav-item"><a class="rd-nav-link" href="contact-us.html">Contate-nos</a>
-                      </li>
-                    </ul>
-                  </div>
-                  <div class="rd-navbar-project-hamburger" data-multitoggle=".rd-navbar-main" data-multitoggle-blur=".rd-navbar-wrap" data-multitoggle-isolate>
-                    <div class="project-hamburger"><span class="project-hamburger-arrow-top"></span><span class="project-hamburger-arrow-center"></span><span class="project-hamburger-arrow-bottom"></span></div>
-                    <div class="project-hamburger-2"><span class="project-hamburger-arrow"></span><span class="project-hamburger-arrow"></span><span class="project-hamburger-arrow"></span>
-                    </div>
-                    <div class="project-close"><span></span><span></span></div>
-                  </div>
-                </div>
-                <div class="rd-navbar-project rd-navbar-modern-project">
-                  <div class="rd-navbar-project-modern-header">
-                    <h4 class="rd-navbar-project-modern-title">Get in Touch</h4>
-                    <div class="rd-navbar-project-hamburger" data-multitoggle=".rd-navbar-main" data-multitoggle-blur=".rd-navbar-wrap" data-multitoggle-isolate>
-                      <div class="project-close"><span></span><span></span></div>
-                    </div>
-                  </div>
-                  <div class="rd-navbar-project-content rd-navbar-modern-project-content">
-                    <div>
-                      <p>We are always ready to provide you with fresh organic products for your home or office. Contact us to find out how we can help you.</p>
-                      <div class="heading-6 subtitle">Our Contacts</div>
-                      <div class="row row-10 gutters-10">
-                        <div class="col-12"><img src="images/home-sidebar-394x255.jpg" alt="" width="394" height="255"/>
-                        </div>
-                      </div>
-                      <ul class="rd-navbar-modern-contacts">
-                        <li>
-                          <div class="unit unit-spacing-sm">
-                            <div class="unit-left"><span class="icon fa fa-phone"></span></div>
-                            <div class="unit-body"><a class="link-phone" href="tel:#">+1 323-913-4688</a></div>
-                          </div>
-                        </li>
-                        <li>
-                          <div class="unit unit-spacing-sm">
-                            <div class="unit-left"><span class="icon fa fa-location-arrow"></span></div>
-                            <div class="unit-body"><a class="link-location" href="#">4730 Crystal Springs Dr, Los Angeles, CA 90027</a></div>
-                          </div>
-                        </li>
-                        <li>
-                          <div class="unit unit-spacing-sm">
-                            <div class="unit-left"><span class="icon fa fa-envelope"></span></div>
-                            <div class="unit-body"><a class="link-email" href="mailto:#">mail@demolink.org</a></div>
-                          </div>
-                        </li>
-                      </ul>
-                      <ul class="list-inline rd-navbar-modern-list-social">
-                        <li><a class="icon fa fa-facebook" href="#"></a></li>
-                        <li><a class="icon fa fa-twitter" href="#"></a></li>
-                        <li><a class="icon fa fa-google-plus" href="#"></a></li>
-                        <li><a class="icon fa fa-instagram" href="#"></a></li>
-                        <li><a class="icon fa fa-pinterest" href="#"></a></li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </nav>
-        </div>
-      </header>
-      <!-- Swiper-->
-      <section class="section swiper-container swiper-slider swiper-slider-modern" data-loop="true" data-autoplay="5000" data-simulate-touch="true" data-nav="true" data-slide-effect="fade">
-        <div class="swiper-wrapper text-left">
-          <div class="swiper-slide context-dark" data-slide-bg="images/slider-1-1920x729.jpg">
-            <div class="swiper-slide-caption">
-              <div class="container">
-                <div class="row justify-content-center justify-content-xxl-start">
-                  <div class="col-md-10 col-xxl-6">
-                    <div class="slider-modern-box">
-                      <h1 class="slider-modern-title"><span data-caption-animate="slideInDown" data-caption-delay="0">CataAção</span></h1>
-                      <p data-caption-animate="fadeInRight" data-caption-delay="400">Este é um teste.</p>
-                      <div class="oh button-wrap"><a class="button button-primary button-ujarak" href="about-us.html" data-caption-animate="slideInLeft" data-caption-delay="400">Read more</a></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="swiper-slide context-dark" data-slide-bg="images/slider-2-1920x729.jpg">
-            <div class="swiper-slide-caption">
-              <div class="container">
-                <div class="row justify-content-center justify-content-xxl-start">
-                  <div class="col-md-10 col-xxl-6">
-                    <div class="slider-modern-box">
-                      <h1 class="slider-modern-title"><span data-caption-animate="slideInLeft" data-caption-delay="0">Quality Control</span></h1>
-                      <p data-caption-animate="fadeInRight" data-caption-delay="400">We control the process of farming at Herber to deliver the best organic products to our customers throughout the state.</p>
-                      <div class="oh button-wrap"><a class="button button-primary button-ujarak" href="about-us.html" data-caption-animate="slideInLeft" data-caption-delay="400">Read more</a></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="swiper-slide" data-slide-bg="images/slider-3-1920x729.jpg">
-            <div class="swiper-slide-caption">
-              <div class="container">
-                <div class="row justify-content-center justify-content-xxl-start">
-                  <div class="col-md-10 col-xxl-6">
-                    <div class="slider-modern-box">
-                      <h1 class="slider-modern-title"><span data-caption-animate="slideInDown" data-caption-delay="0">Eco-Friendly</span></h1>
-                      <p data-caption-animate="fadeInRight" data-caption-delay="400">As the leading organic farm, we maintain an eco-friendly policy of growing and selling healthy food without any additives.</p>
-                      <div class="oh button-wrap"><a class="button button-primary button-ujarak" href="about-us.html" data-caption-animate="slideInUp" data-caption-delay="400">Read more</a></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- Swiper Navigation-->
-        <div class="swiper-button-prev"></div>
-        <div class="swiper-button-next"></div>
-        <!-- Swiper Pagination-->
-        <div class="swiper-pagination swiper-pagination-style-2"></div>
-      </section>
+    <!-- ===================== CABEÇALHO ===================== -->
+    <header class="ca ca-topo">
+      <div class="ca-container ca-topo-inner">
+        <a class="ca-brand" href="index.html" aria-label="CataAção, página inicial">
+          <svg class="ca-brand-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+            <defs><clipPath id="ca-pino-topo"><path d="M16 2C9.9 2 5 6.7 5 12.6 5 20.4 16 30 16 30s11-9.6 11-17.4C27 6.7 22.1 2 16 2z"/></clipPath></defs>
+            <g clip-path="url(#ca-pino-topo)">
+              <rect x="0" y="0" width="10.5" height="32" fill="#1c64c8"/>
+              <rect x="10.5" y="0" width="5.5" height="32" fill="#d6332a"/>
+              <rect x="16" y="0" width="5.5" height="32" fill="#1f8a3b"/>
+              <rect x="21.5" y="0" width="10.5" height="32" fill="#f2c12e"/>
+            </g>
+            <circle cx="16" cy="12.5" r="4.4" fill="#fff"/>
+          </svg>
+          <span>CataAção</span>
+        </a>
+        <button type="button" class="ca-menu-btn" aria-expanded="false" aria-controls="ca-nav">
+          <span class="ca-menu-icone" aria-hidden="true"></span><span>Menu</span>
+        </button>
+        <nav id="ca-nav" class="ca-nav" aria-label="Principal">
+          <ul>
+            <li><a href="#mapa">Mapa</a></li>
+            <li><a href="#guia">Como descartar</a></li>
+            <li><a href="about-us.html">Sobre</a></li>
+            <li><a href="contact-us.html">Contato</a></li>
+          </ul>
+          <a class="ca-btn ca-btn-denuncia ca-btn-sm" href="#denunciar">Denunciar</a>
+        </nav>
+      </div>
+    </header>
+    <script>
+    /* Menu do cabeçalho: independente do mapa e dos scripts do template */
+    (function () {
+      var btn = document.querySelector('.ca-menu-btn');
+      var nav = document.getElementById('ca-nav');
+      if (!btn || !nav) return;
+      function fechar(devolverFoco) {
+        nav.classList.remove('is-aberto');
+        btn.setAttribute('aria-expanded', 'false');
+        if (devolverFoco) btn.focus();
+      }
+      btn.addEventListener('click', function () {
+        var abrir = btn.getAttribute('aria-expanded') !== 'true';
+        nav.classList.toggle('is-aberto', abrir);
+        btn.setAttribute('aria-expanded', String(abrir));
+      });
+      nav.addEventListener('click', function (e) { if (e.target.closest('a')) fechar(false); });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && nav.classList.contains('is-aberto')) fechar(true); });
+      document.addEventListener('click', function (e) { if (nav.classList.contains('is-aberto') && !e.target.closest('.ca-topo')) fechar(false); });
 
-      <!-- Icons Ruby-->
-      <section class="section section-md bg-default section-top-image">
-        <div class="container">
-          <div class="row row-30 justify-content-center">
-            <div class="col-sm-6 col-lg-4 wow fadeInRight" data-wow-delay="0s">
-              <article class="box-icon-ruby">
-                <div class="unit box-icon-ruby-body flex-column flex-md-row text-md-left flex-lg-column align-items-center text-lg-center flex-xl-row text-xl-left">
-                  <div class="unit-left">
-                    <div class="box-icon-ruby-icon linearicons-leaf"></div>
+      /* Marca no menu a seção que está na tela */
+      document.addEventListener('DOMContentLoaded', function () {
+        if (!('IntersectionObserver' in window)) return;
+        var links = {};
+        nav.querySelectorAll('a[href^="#"]:not(.ca-btn)').forEach(function (a) { links[a.getAttribute('href').slice(1)] = a; });
+        var limpar = function () {
+          Object.keys(links).forEach(function (k) { links[k].classList.remove('is-atual'); links[k].removeAttribute('aria-current'); });
+        };
+        var obs = new IntersectionObserver(function (entradas) {
+          entradas.forEach(function (en) {
+            if (!en.isIntersecting) return;
+            limpar();
+            var a = links[en.target.id];
+            if (a) { a.classList.add('is-atual'); a.setAttribute('aria-current', 'location'); }
+          });
+        }, { rootMargin: '-45% 0px -50% 0px' });
+        document.querySelectorAll('main section').forEach(function (s) { obs.observe(s); });
+      });
+    })();
+    </script>
+    <div class="page">
+
+      <main id="conteudo" class="ca">
+        <!-- ===================== HERO ===================== -->
+        <section class="ca-hero">
+          <div class="ca-container">
+            <h1>Descarte no lugar certo. Denuncie o lugar errado.</h1>
+            <p class="ca-lead">O CataAção é um mapa colaborativo com os pontos de coleta de resíduos da cidade e as denúncias feitas por moradores sobre descarte irregular e falta de locais para descartar.</p>
+            <div class="ca-caminhos">
+              <div class="ca-caminho">
+                <h2>Quero descartar</h2>
+                <p>Encontre o ponto de coleta mais perto de você para recicláveis, eletrônicos, pilhas, óleo de cozinha, entulho e medicamentos.</p>
+                <a class="ca-btn ca-btn-verde" href="#mapa">Encontrar ponto de coleta</a>
+              </div>
+              <div class="ca-caminho ca-caminho-denuncia">
+                <h2>Vi um problema</h2>
+                <p>Lixo ou entulho jogado na rua, ponto de coleta lotado ou nenhum ponto no bairro. Marque o local no mapa, sem precisar de cadastro.</p>
+                <a class="ca-btn ca-btn-denuncia" href="#denunciar">Fazer uma denúncia</a>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===================== MAPA ===================== -->
+        <section id="mapa" class="ca-section">
+          <div class="ca-container">
+            <header class="ca-head">
+              <h2>Mapa de pontos de coleta e denúncias</h2>
+              <p>Filtre pelo tipo de resíduo que você quer descartar. Toque em um marcador para ver endereço, horário e o que o local aceita.</p>
+            </header>
+            <p class="ca-aviso-demo" role="note"><strong>Versão de demonstração.</strong> Os pontos e denúncias exibidos são fictícios e servem apenas para testar a página.</p>
+            <div class="ca-mapa-layout">
+              <aside class="ca-painel" aria-label="Filtros do mapa">
+                <fieldset class="ca-fieldset">
+                  <legend>Pontos de coleta por resíduo</legend>
+                  <div id="filtros-categorias"></div>
+                  <div class="ca-filtro-acoes">
+                    <button type="button" class="ca-link" id="filtro-todos">Marcar todos</button>
+                    <button type="button" class="ca-link" id="filtro-nenhum">Desmarcar todos</button>
                   </div>
-                  <div class="unit-body">
-                    <h4 class="box-icon-ruby-title"><a href="#">Natural &amp; Organic</a></h4>
-                  </div>
+                </fieldset>
+                <fieldset class="ca-fieldset">
+                  <legend>Denúncias</legend>
+                  <label class="ca-filtro"><input type="checkbox" id="filtro-denuncias" checked><span class="ca-losango-legenda" aria-hidden="true"></span><span class="ca-filtro-nome">Mostrar denúncias abertas</span></label>
+                  <label class="ca-filtro"><input type="checkbox" id="filtro-resolvidas"><span class="ca-losango-legenda ca-status-resolvida" aria-hidden="true"></span><span class="ca-filtro-nome">Incluir resolvidas</span></label>
+                </fieldset>
+                <div>
+                  <button type="button" id="btn-proximo" class="ca-btn ca-btn-verde ca-btn-bloco">Ponto mais próximo de mim</button>
+                  <p id="saida-proximo" class="ca-small ca-saida-proximo" aria-live="polite"></p>
+                </div>
+                <details class="ca-lista">
+                  <summary>Lista de pontos (<span id="total-lista">0</span>)</summary>
+                  <ul id="lista-pontos"></ul>
+                </details>
+              </aside>
+              <div class="ca-mapa-wrap">
+                <div id="mapa-principal" class="ca-mapa" role="region" aria-label="Mapa de pontos de coleta e denúncias">
+                  <noscript><p class="ca-mapa-erro">O mapa precisa de JavaScript ativado.</p></noscript>
+                </div>
+                <div class="ca-legenda">
+                  <span><span class="ca-cor ca-cat-reciclaveis" aria-hidden="true"></span>Círculo: ponto de coleta</span>
+                  <span><span class="ca-losango-legenda" aria-hidden="true"></span>Losango: denúncia aberta</span>
+                  <span><span class="ca-losango-legenda ca-status-encaminhada" aria-hidden="true"></span>Encaminhada</span>
+                  <span><span class="ca-losango-legenda ca-status-resolvida" aria-hidden="true"></span>Resolvida</span>
+                  <span class="ca-legenda-nota">As cores dos pontos seguem o padrão brasileiro da coleta seletiva (Resolução Conama 275/2001) sempre que existe correspondência.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===================== GUIA ===================== -->
+        <section id="guia" class="ca-section ca-section-alt">
+          <div class="ca-container">
+            <header class="ca-head">
+              <h2>Como descartar cada resíduo</h2>
+              <p>Descartar certo começa em casa. Veja como preparar cada material e onde entregar.</p>
+            </header>
+            <div class="ca-guia">
+              <article class="ca-residuo">
+                <span class="ca-cor ca-cat-reciclaveis" aria-hidden="true"></span>
+                <div>
+                  <h3>Recicláveis</h3>
+                  <p class="ca-residuo-sub">Papel, papelão, plástico, metal e vidro</p>
+                  <ul>
+                    <li>Retire restos de comida e escorra os líquidos. Não é preciso lavar com muita água.</li>
+                    <li>Achate caixas e garrafas para ocupar menos espaço.</li>
+                    <li>Vidro quebrado: embrulhe em jornal ou coloque numa caixa identificada, para proteger quem coleta.</li>
+                    <li>Papel engordurado, guardanapo usado, fita adesiva e espelho não são recicláveis.</li>
+                  </ul>
+                  <button type="button" class="ca-link" data-filtrar="reciclaveis">Ver pontos no mapa</button>
+                </div>
+              </article>
+              <article class="ca-residuo">
+                <span class="ca-cor ca-cat-eletronicos" aria-hidden="true"></span>
+                <div>
+                  <h3>Eletrônicos</h3>
+                  <p class="ca-residuo-sub">Celulares, computadores, cabos, carregadores e pequenos eletrodomésticos</p>
+                  <ul>
+                    <li>Apague seus dados e retire o chip e o cartão de memória antes de entregar.</li>
+                    <li>Retire pilhas e baterias removíveis: elas vão para outro coletor.</li>
+                    <li>Não desmonte aparelhos. Alguns componentes são perigosos.</li>
+                  </ul>
+                  <button type="button" class="ca-link" data-filtrar="eletronicos">Ver pontos no mapa</button>
+                </div>
+              </article>
+              <article class="ca-residuo">
+                <span class="ca-cor ca-cat-pilhas" aria-hidden="true"></span>
+                <div>
+                  <h3>Pilhas e baterias</h3>
+                  <p class="ca-residuo-sub">Pilhas comuns, recarregáveis e baterias de celular</p>
+                  <ul>
+                    <li>Nunca no lixo comum: podem conter metais tóxicos que contaminam solo e água.</li>
+                    <li>Guarde num pote plástico seco até levar ao ponto.</li>
+                    <li>Bateria de lítio estufada ou danificada: cubra os polos com fita isolante e não perfure.</li>
+                    <li>Lojas que vendem pilhas e baterias devem receber as usadas.</li>
+                  </ul>
+                  <button type="button" class="ca-link" data-filtrar="pilhas">Ver pontos no mapa</button>
+                </div>
+              </article>
+              <article class="ca-residuo">
+                <span class="ca-cor ca-cat-oleo" aria-hidden="true"></span>
+                <div>
+                  <h3>Óleo de cozinha</h3>
+                  <p class="ca-residuo-sub">Óleo de fritura e gordura usada</p>
+                  <ul>
+                    <li>Nunca na pia ou no ralo: entope o encanamento e polui rios e lagoas.</li>
+                    <li>Espere esfriar, coe e guarde numa garrafa PET bem fechada.</li>
+                    <li>Leve ao ponto quando a garrafa encher. O óleo coletado vira sabão ou biodiesel.</li>
+                  </ul>
+                  <button type="button" class="ca-link" data-filtrar="oleo">Ver pontos no mapa</button>
+                </div>
+              </article>
+              <article class="ca-residuo">
+                <span class="ca-cor ca-cat-entulho" aria-hidden="true"></span>
+                <div>
+                  <h3>Entulho e volumosos</h3>
+                  <p class="ca-residuo-sub">Restos de pequenas obras, móveis, colchões e eletrodomésticos grandes</p>
+                  <ul>
+                    <li>Ecopontos costumam limitar o volume por entrega. Confira antes de ir.</li>
+                    <li>Para grandes volumes, use a remoção agendada pela prefeitura ou contrate uma caçamba licenciada.</li>
+                    <li>Deixar entulho na calçada ou em terreno baldio é descarte irregular e pode gerar multa.</li>
+                  </ul>
+                  <button type="button" class="ca-link" data-filtrar="entulho">Ver pontos no mapa</button>
+                </div>
+              </article>
+              <article class="ca-residuo">
+                <span class="ca-cor ca-cat-medicamentos" aria-hidden="true"></span>
+                <div>
+                  <h3>Medicamentos</h3>
+                  <p class="ca-residuo-sub">Remédios vencidos ou que você não vai mais usar</p>
+                  <ul>
+                    <li>Entregue em farmácias com coletor de medicamentos.</li>
+                    <li>Comprimidos vão nas cartelas e líquidos nos frascos fechados. Caixas e bulas de papel vão para a reciclagem.</li>
+                    <li>Nunca no vaso sanitário, na pia ou no lixo comum.</li>
+                    <li>Agulhas e seringas: em recipiente rígido e fechado. Pergunte na farmácia ou na unidade de saúde onde entregar.</li>
+                  </ul>
+                  <button type="button" class="ca-link" data-filtrar="medicamentos">Ver pontos no mapa</button>
                 </div>
               </article>
             </div>
-            <div class="col-sm-6 col-lg-4 wow fadeInRight" data-wow-delay=".1s">
-              <article class="box-icon-ruby">
-                <div class="unit box-icon-ruby-body flex-column flex-md-row text-md-left flex-lg-column align-items-center text-lg-center flex-xl-row text-xl-left">
-                  <div class="unit-left">
-                    <div class="box-icon-ruby-icon linearicons-shovel"></div>
-                  </div>
-                  <div class="unit-body">
-                    <h4 class="box-icon-ruby-title"><a href="#">Best Equipment</a></h4>
-                  </div>
-                </div>
-              </article>
-            </div>
-            <div class="col-sm-6 col-lg-4 wow fadeInRight" data-wow-delay=".2s">
-              <article class="box-icon-ruby">
-                <div class="unit box-icon-ruby-body flex-column flex-md-row text-md-left flex-lg-column align-items-center text-lg-center flex-xl-row text-xl-left">
-                  <div class="unit-left">
-                    <div class="box-icon-ruby-icon linearicons-sun"></div>
-                  </div>
-                  <div class="unit-body">
-                    <h4 class="box-icon-ruby-title"><a href="#">Dedicated Team</a></h4>
-                  </div>
-                </div>
-              </article>
-            </div>
+            <p class="ca-small ca-base-legal">Referências: Política Nacional de Resíduos Sólidos (Lei 12.305/2010), Resolução Conama 401/2008 (pilhas e baterias) e Decreto 10.388/2020 (medicamentos). Regras e limites locais podem variar; confira com a prefeitura.</p>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <!-- Trending products-->
-      <section class="section section-md bg-default">
-        <div class="container">
-          <div class="row row-40 justify-content-center">
-            <div class="col-sm-8 col-md-7 col-lg-6 wow fadeInLeft" data-wow-delay="0s">
-              <div class="product-banner"><img src="images/home-banner-1-570x715.jpg" alt="" width="570" height="715"/>
-                <div class="product-banner-content">
-                  <div class="product-banner-inner" style="background-image: url(images/bg-brush.png)">
-                    <h3 class="text-secondary-1">organic</h3>
-                    <h2 class="text-primary">Vegetables</h2>
-                  </div>
-                </div>
+        <!-- ===================== DENÚNCIA ===================== -->
+        <section id="denunciar" class="ca-section">
+          <div class="ca-container ca-denuncia-layout">
+            <div class="ca-intro">
+              <h2>Denunciar um problema</h2>
+              <p>Sua denúncia vira um ponto público no mapa. Quanto mais precisa a localização e a descrição, mais força ela tem para cobrar uma solução.</p>
+              <p>Não é preciso criar conta nem se identificar.</p>
+              <h3>O que você pode denunciar</h3>
+              <ul class="ca-marcada">
+                <li>Lixo, entulho, móveis ou pneus descartados em calçadas, praças, terrenos baldios, rios ou encostas.</li>
+                <li>Ponto de coleta cheio, danificado ou fechado no horário de funcionamento.</li>
+                <li>Falta de ponto de coleta na sua região.</li>
+                <li>Queima de lixo.</li>
+              </ul>
+              <div class="ca-emergencia" role="note">
+                <p><strong>Risco imediato?</strong> Em caso de incêndio, deslizamento ou material perigoso, não use este formulário.</p>
+                <p>Ligue <a href="tel:193">193</a> (Bombeiros) ou <a href="tel:199">199</a> (Defesa Civil).</p>
               </div>
+              <p class="ca-small" style="margin-top:20px">O CataAção não substitui o canal oficial da prefeitura. Para gerar atendimento, registre também no <a href="#">canal oficial de atendimento</a> e informe o número de protocolo na descrição.</p>
             </div>
-            <div class="col-md-5 col-lg-6">
-              <div class="row row-30 justify-content-center">
-                <div class="col-sm-6 col-md-12 col-lg-6">
-                  <div class="oh-desktop">
-                    <!-- Product-->
-                    <article class="product product-2 box-ordered-item wow slideInRight" data-wow-delay="0s">
-                      <div class="unit flex-row flex-lg-column">
-                        <div class="unit-left">
-                          <div class="product-figure"><img src="images/product-5-270x280.png" alt="" width="270" height="280"/>
-                            <div class="product-button"><a class="button button-md button-white button-ujarak" href="#">Add to cart</a></div>
-                          </div>
-                        </div>
-                        <div class="unit-body">
-                          <h6 class="product-title"><a href="#">Avocados</a></h6>
-                          <div class="product-price-wrap">
-                            <div class="product-price product-price-old">$59.00</div>
-                            <div class="product-price">$28.00</div>
-                          </div><a class="button button-sm button-secondary button-ujarak" href="#">Add to cart</a>
-                        </div>
-                      </div>
-                    </article>
-                  </div>
-                </div>
-                <div class="col-sm-6 col-md-12 col-lg-6">
-                  <div class="oh-desktop">
-                    <!-- Product-->
-                    <article class="product product-2 box-ordered-item wow slideInLeft" data-wow-delay="0s">
-                      <div class="unit flex-row flex-lg-column">
-                        <div class="unit-left">
-                          <div class="product-figure"><img src="images/product-6-270x280.png" alt="" width="270" height="280"/>
-                            <div class="product-button"><a class="button button-md button-white button-ujarak" href="#">Add to cart</a></div>
-                          </div>
-                        </div>
-                        <div class="unit-body">
-                          <h6 class="product-title"><a href="#">Corn</a></h6>
-                          <div class="product-price-wrap">
-                            <div class="product-price">$27.00</div>
-                          </div><a class="button button-sm button-secondary button-ujarak" href="#">Add to cart</a>
-                        </div>
-                      </div>
-                    </article>
-                  </div>
-                </div>
-                <div class="col-sm-6 col-md-12 col-lg-6">
-                  <div class="oh-desktop">
-                    <!-- Product-->
-                    <article class="product product-2 box-ordered-item wow slideInLeft" data-wow-delay="0s">
-                      <div class="unit flex-row flex-lg-column">
-                        <div class="unit-left">
-                          <div class="product-figure"><img src="images/product-8-270x280.png" alt="" width="270" height="280"/>
-                            <div class="product-button"><a class="button button-md button-white button-ujarak" href="#">Add to cart</a></div>
-                          </div>
-                        </div>
-                        <div class="unit-body">
-                          <h6 class="product-title"><a href="#">Artichokes</a></h6>
-                          <div class="product-price-wrap">
-                            <div class="product-price">$23.00</div>
-                          </div><a class="button button-sm button-secondary button-ujarak" href="#">Add to cart</a>
-                        </div>
-                      </div>
-                    </article>
-                  </div>
-                </div>
-                <div class="col-sm-6 col-md-12 col-lg-6">
-                  <div class="oh-desktop">
-                    <!-- Product-->
-                    <article class="product product-2 box-ordered-item wow slideInRight" data-wow-delay="0s">
-                      <div class="unit flex-row flex-lg-column">
-                        <div class="unit-left">
-                          <div class="product-figure"><img src="images/product-7-270x280.png" alt="" width="270" height="280"/>
-                            <div class="product-button"><a class="button button-md button-white button-ujarak" href="#">Add to cart</a></div>
-                          </div>
-                        </div>
-                        <div class="unit-body">
-                          <h6 class="product-title"><a href="#">Broccoli</a></h6>
-                          <div class="product-price-wrap">
-                            <div class="product-price">$25.00</div>
-                          </div><a class="button button-sm button-secondary button-ujarak" href="#">Add to cart</a>
-                        </div>
-                      </div>
-                    </article>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      <!-- Section CTA 2-->
-      <section class="section text-center">
-        <div class="parallax-container" data-parallax-img="images/bg-parallax-1.jpg">
-          <div class="parallax-content section-xl section-inset-custom-1 context-dark bg-overlay-40">
-            <div class="container">
-              <h2 class="oh font-weight-normal"><span class="d-inline-block wow slideInDown" data-wow-delay="0s">Our Approach</span></h2>
-              <p class="oh big text-width-large"><span class="d-inline-block wow slideInUp" data-wow-delay=".2s">Our farm strictly combines the traditions of organic farming with the latest innovations to make our products healthy and safe for the clients.</span></p><a class="button button-primary button-icon button-icon-left button-ujarak wow fadeInUp" href="https://www.youtube.com/watch?v=-AhmuMqZB0s" data-lightgallery="item" data-wow-delay=".1s"><span class="icon mdi mdi-play"></span>View presentation</a>
-            </div>
-          </div>
-        </div>
-      </section>
+            <form id="form-denuncia" class="ca-form" novalidate aria-labelledby="titulo-form">
+              <h3 id="titulo-form">Nova denúncia</h3>
 
-      <!-- Team of professionals-->
-      <section class="section section-md bg-default">
-        <div class="container">
-          <div class="oh">
-            <h2 class="wow slideInUp" data-wow-delay="0s">Our Team</h2>
-          </div>
-          <div class="row row-30 justify-content-center">
-            <div class="col-md-6 col-lg-4 col-xl-4 wow fadeInRight" data-wow-delay="0s">
-              <!-- Team Classic-->
-              <article class="team-classic"><a class="team-classic-figure" href="#"><img src="images/team-1-370x406.jpg" alt="" width="370" height="406"/></a>
-                <div class="team-classic-caption">
-                  <h5 class="team-classic-name"><a href="#">Ryan Wilson</a></h5>
-                  <p class="team-classic-status">Founder</p>
-                </div>
-              </article>
-            </div>
-            <div class="col-md-6 col-lg-4 col-xl-4 wow fadeInRight" data-wow-delay=".1s">
-              <!-- Team Classic-->
-              <article class="team-classic"><a class="team-classic-figure" href="#"><img src="images/team-2-370x406.jpg" alt="" width="370" height="406"/></a>
-                <div class="team-classic-caption">
-                  <h5 class="team-classic-name"><a href="#">Jill Peterson</a></h5>
-                  <p class="team-classic-status">Garden Manager</p>
-                </div>
-              </article>
-            </div>
-            <div class="col-md-6 col-lg-4 col-xl-4 wow fadeInRight" data-wow-delay=".2s">
-              <!-- Team Classic-->
-              <article class="team-classic"><a class="team-classic-figure" href="#"><img src="images/team-3-370x406.jpg" alt="" width="370" height="406"/></a>
-                <div class="team-classic-caption">
-                  <h5 class="team-classic-name"><a href="#">Sam Robinson</a></h5>
-                  <p class="team-classic-status">Farmyard Coordinator</p>
-                </div>
-              </article>
-            </div>
-          </div>
-        </div>
-      </section>
+              <div class="ca-campo">
+                <label class="ca-rotulo" for="den-tipo">Tipo do problema <span class="ca-req" aria-hidden="true">*</span></label>
+                <select id="den-tipo" class="ca-entrada" data-campo="tipo" required aria-describedby="erro-tipo">
+                  <option value="">Selecione</option>
+                  <option value="descarte">Descarte irregular de lixo ou entulho</option>
+                  <option value="ponto_problema">Ponto de coleta cheio, danificado ou fechado</option>
+                  <option value="falta_ponto">Falta de ponto de coleta na região</option>
+                  <option value="queima">Queima de lixo</option>
+                  <option value="outro">Outro problema</option>
+                </select>
+                <p id="erro-tipo" class="ca-erro" hidden></p>
+              </div>
 
-      <!-- About us-->
-      <section class="section">
-        <div class="parallax-container" data-parallax-img="images/bg-parallax-2.jpg">
-          <div class="parallax-content section-xl context-dark bg-overlay-68">
-            <div class="container">
-              <div class="row row-lg row-50 justify-content-center border-classic border-classic-big">
-                <div class="col-sm-6 col-md-5 col-lg-3 wow fadeInLeft" data-wow-delay="0s">
-                  <div class="counter-creative">
-                    <div class="counter-creative-number"><span class="counter">12</span><span class="icon counter-creative-icon fl-bigmug-line-trophy55"></span>
-                    </div>
-                    <h6 class="counter-creative-title">Awards</h6>
-                  </div>
+              <div class="ca-campo">
+                <span class="ca-rotulo" id="rotulo-local">Local <span class="ca-req" aria-hidden="true">*</span></span>
+                <p class="ca-ajuda">Toque no mapa para marcar o ponto exato ou use sua localização atual.</p>
+                <div id="mapa-denuncia" class="ca-minimapa" data-campo="local" role="region" aria-labelledby="rotulo-local"></div>
+                <div class="ca-local-acoes">
+                  <button type="button" id="den-minha-localizacao" class="ca-btn ca-btn-contorno ca-btn-sm" aria-describedby="erro-local">Usar minha localização</button>
+                  <p id="den-local-texto" class="ca-small" aria-live="polite">Nenhum local marcado. Toque no mapa para marcar.</p>
                 </div>
-                <div class="col-sm-6 col-md-5 col-lg-3 wow fadeInLeft" data-wow-delay=".1s">
-                  <div class="counter-creative">
-                    <div class="counter-creative-number"><span class="counter">2</span><span class="symbol">k</span><span class="icon counter-creative-icon fl-bigmug-line-up104"></span>
-                    </div>
-                    <h6 class="counter-creative-title">Products</h6>
-                  </div>
-                </div>
-                <div class="col-sm-6 col-md-5 col-lg-3 wow fadeInLeft" data-wow-delay=".2s">
-                  <div class="counter-creative">
-                    <div class="counter-creative-number"><span class="counter">679</span><span class="icon counter-creative-icon fl-bigmug-line-sun81"></span>
-                    </div>
-                    <h6 class="counter-creative-title">Happy Clients</h6>
-                  </div>
-                </div>
-                <div class="col-sm-6 col-md-5 col-lg-3 wow fadeInLeft" data-wow-delay=".3s">
-                  <div class="counter-creative">
-                    <div class="counter-creative-number"><span class="counter">13</span><span class="icon counter-creative-icon fl-bigmug-line-user143"></span>
-                    </div>
-                    <h6 class="counter-creative-title">Farmers</h6>
-                  </div>
-                </div>
+                <input type="hidden" id="den-lat" name="lat">
+                <input type="hidden" id="den-lng" name="lng">
+                <p id="erro-local" class="ca-erro" hidden></p>
               </div>
-            </div>
-          </div>
-        </div>
 
-      </section>
-      <!-- Improve your interior with deco-->
-      <section class="section section-md bg-default section-top-image">
-        <div class="container">
-          <div class="oh h2-title">
-            <h2 class="wow slideInUp" data-wow-delay="0s">Our Gallery</h2>
+              <div class="ca-campo">
+                <label class="ca-rotulo" for="den-referencia">Ponto de referência <span class="ca-opcional">(opcional)</span></label>
+                <input type="text" id="den-referencia" class="ca-entrada" maxlength="120" placeholder="Ex.: em frente ao nº 250, ao lado da praça">
+              </div>
+
+              <div class="ca-campo">
+                <label class="ca-rotulo" for="den-descricao">Descrição <span class="ca-req" aria-hidden="true">*</span></label>
+                <textarea id="den-descricao" class="ca-entrada" data-campo="descricao" rows="4" maxlength="600" required aria-describedby="den-descricao-ajuda erro-descricao" placeholder="O que foi descartado, há quanto tempo está lá, se o problema se repete"></textarea>
+                <p id="den-descricao-ajuda" class="ca-ajuda ca-ajuda-linha"><span>Descreva o problema, não as pessoas. Não cite nomes.</span><span id="den-contador">0/600</span></p>
+                <p id="erro-descricao" class="ca-erro" hidden></p>
+              </div>
+
+              <div class="ca-campo">
+                <label class="ca-rotulo" for="den-foto">Foto <span class="ca-opcional">(opcional, até 5 MB)</span></label>
+                <input type="file" id="den-foto" class="ca-entrada" data-campo="foto" accept="image/jpeg,image/png,image/webp" aria-describedby="den-foto-ajuda erro-foto">
+                <p id="den-foto-ajuda" class="ca-ajuda">Enquadre o problema. Evite rostos, placas de veículos e documentos.</p>
+                <div id="den-foto-preview" class="ca-foto-preview"></div>
+                <p id="erro-foto" class="ca-erro" hidden></p>
+              </div>
+
+              <div class="ca-campo">
+                <label class="ca-rotulo" for="den-email">E-mail <span class="ca-opcional">(opcional)</span></label>
+                <input type="email" id="den-email" class="ca-entrada" data-campo="email" autocomplete="email" placeholder="voce@exemplo.com" aria-describedby="den-email-ajuda erro-email">
+                <p id="den-email-ajuda" class="ca-ajuda">Usado só para avisar quando o status mudar. Nunca aparece no mapa.</p>
+                <p id="erro-email" class="ca-erro" hidden></p>
+              </div>
+
+              <div class="ca-campo">
+                <label class="ca-check"><input type="checkbox" id="den-termo" data-campo="termo" aria-describedby="erro-termo"><span>Declaro que as informações são verdadeiras e que a foto, se enviada, não identifica pessoas nem placas de veículos.</span></label>
+                <p id="erro-termo" class="ca-erro" hidden></p>
+              </div>
+
+              <button type="submit" id="den-enviar" class="ca-btn ca-btn-denuncia ca-btn-bloco ca-enviar">Enviar denúncia</button>
+              <div id="den-saida" class="ca-saida" aria-live="polite"></div>
+            </form>
           </div>
-          <div class="row row-30" data-lightgallery="group">
-            <div class="col-sm-6 col-lg-4">
-              <div class="oh-desktop">
-                <!-- Thumbnail Classic-->
-                <article class="thumbnail thumbnail-mary thumbnail-sm wow slideInLeft" data-wow-delay="0s">
-                  <div class="thumbnail-mary-figure"><img src="images/grid-gallery-1-370x303.jpg" alt="" width="370" height="303"/>
-                  </div>
-                  <div class="thumbnail-mary-caption"><a class="icon fl-bigmug-line-zoom60" href="images/gallery-original-1-1200x800.jpg" data-lightgallery="item"><img src="images/grid-gallery-1-370x303.jpg" alt="" width="370" height="303"/></a>
-                    <h4 class="thumbnail-mary-title"><a href="#">Watermelons</a></h4>
-                  </div>
-                </article>
+        </section>
+
+        <!-- ===================== O QUE ACONTECE ===================== -->
+        <section id="como-funciona" class="ca-section ca-section-alt">
+          <div class="ca-container">
+            <header class="ca-head">
+              <h2>O que acontece com a sua denúncia</h2>
+              <p>Cada denúncia recebe um protocolo e um status público. As cores são as mesmas do mapa.</p>
+            </header>
+            <ol class="ca-etapas">
+              <li><strong>Recebida</strong><span>O local e o tipo do problema aparecem no mapa na hora.</span></li>
+              <li><strong>Em análise</strong><span>Descrição e foto são revisadas antes de ficarem públicas.</span></li>
+              <li style="--st:#e8590c"><strong>Encaminhada</strong><span>Registrada no canal oficial do órgão responsável, com número de protocolo.</span></li>
+              <li style="--st:#1f8a3b"><strong>Resolvida</strong><span>Confirmada por foto ou por outros moradores.</span></li>
+            </ol>
+            <div class="ca-regras">
+              <div>
+                <h3>Privacidade</h3>
+                <p>Não é preciso se identificar. O e-mail, se informado, serve apenas para avisar sobre mudanças de status e nunca é publicado. Os dados de localização gravados dentro das fotos são removidos antes da publicação.</p>
               </div>
-            </div>
-            <div class="col-sm-6 col-lg-4">
-              <div class="oh-desktop">
-                <!-- Thumbnail Classic-->
-                <article class="thumbnail thumbnail-mary thumbnail-sm wow slideInUp" data-wow-delay=".1s">
-                  <div class="thumbnail-mary-figure"><img src="images/grid-gallery-2-370x303.jpg" alt="" width="370" height="303"/>
-                  </div>
-                  <div class="thumbnail-mary-caption"><a class="icon fl-bigmug-line-zoom60" href="images/gallery-original-2-1200x800.jpg" data-lightgallery="item"><img src="images/grid-gallery-2-370x303.jpg" alt="" width="370" height="303"/></a>
-                    <h4 class="thumbnail-mary-title"><a href="#">Grapes</a></h4>
-                  </div>
-                </article>
+              <div>
+                <h3>O que não é publicado</h3>
+                <p>Denúncias que acusam pessoas pelo nome, contêm ofensas ou mostram rostos e placas de veículos são editadas ou descartadas.</p>
               </div>
-            </div>
-            <div class="col-sm-6 col-lg-4">
-              <div class="oh-desktop">
-                <!-- Thumbnail Classic-->
-                <article class="thumbnail thumbnail-mary thumbnail-sm wow slideInRight" data-wow-delay=".0s">
-                  <div class="thumbnail-mary-figure"><img src="images/grid-gallery-3-370x303.jpg" alt="" width="370" height="303"/>
-                  </div>
-                  <div class="thumbnail-mary-caption"><a class="icon fl-bigmug-line-zoom60" href="images/gallery-original-3-800x1200.jpg" data-lightgallery="item"><img src="images/grid-gallery-3-370x303.jpg" alt="" width="370" height="303"/></a>
-                    <h4 class="thumbnail-mary-title"><a href="#">Mandarin Oranges</a></h4>
-                  </div>
-                </article>
-              </div>
-            </div>
-            <div class="col-sm-6 col-lg-4">
-              <div class="oh-desktop">
-                <!-- Thumbnail Classic-->
-                <article class="thumbnail thumbnail-mary thumbnail-sm wow slideInUp" data-wow-delay=".1s">
-                  <div class="thumbnail-mary-figure"><img src="images/grid-gallery-4-370x303.jpg" alt="" width="370" height="303"/>
-                  </div>
-                  <div class="thumbnail-mary-caption"><a class="icon fl-bigmug-line-zoom60" href="images/gallery-original-4-800x1200.jpg" data-lightgallery="item"><img src="images/grid-gallery-4-370x303.jpg" alt="" width="370" height="303"/></a>
-                    <h4 class="thumbnail-mary-title"><a href="#">Lemons</a></h4>
-                  </div>
-                </article>
-              </div>
-            </div>
-            <div class="col-sm-6 col-lg-4">
-              <div class="oh-desktop">
-                <!-- Thumbnail Classic-->
-                <article class="thumbnail thumbnail-mary thumbnail-sm wow slideInLeft" data-wow-delay="0s">
-                  <div class="thumbnail-mary-figure"><img src="images/grid-gallery-5-370x303.jpg" alt="" width="370" height="303"/>
-                  </div>
-                  <div class="thumbnail-mary-caption"><a class="icon fl-bigmug-line-zoom60" href="images/gallery-original-5-800x1200.jpg" data-lightgallery="item"><img src="images/grid-gallery-5-370x303.jpg" alt="" width="370" height="303"/></a>
-                    <h4 class="thumbnail-mary-title"><a href="#">Organic Food</a></h4>
-                  </div>
-                </article>
-              </div>
-            </div>
-            <div class="col-sm-6 col-lg-4">
-              <div class="oh-desktop">
-                <!-- Thumbnail Classic-->
-                <article class="thumbnail thumbnail-mary thumbnail-sm wow slideInDown" data-wow-delay=".1s">
-                  <div class="thumbnail-mary-figure"><img src="images/grid-gallery-6-370x303.jpg" alt="" width="370" height="303"/>
-                  </div>
-                  <div class="thumbnail-mary-caption"><a class="icon fl-bigmug-line-zoom60" href="images/gallery-original-6-1200x800.jpg" data-lightgallery="item"><img src="images/grid-gallery-6-370x303.jpg" alt="" width="370" height="303"/></a>
-                    <h4 class="thumbnail-mary-title"><a href="#">Salad</a></h4>
-                  </div>
-                </article>
+              <div>
+                <h3>Problema já está no mapa?</h3>
+                <p>Abra a denúncia existente e toque em “Também vi isso”. Assim a recorrência fica registrada sem duplicar pontos no mapa.</p>
               </div>
             </div>
           </div>
-        </div>
-      </section>
-<a class="section section-banner" href="https://www.templatemonster.com/intense-multipurpose-html-template.html" style="background-image: url(images/banner/background-03-1920x310.jpg); background-image: -webkit-image-set( url(images/banner/background-03-1920x310.jpg) 1x, url(images/banner/background-03-3840x620.jpg) 2x )"><img src="images/banner/foreground-03-1600x310.png" srcset="images/banner/foreground-03-1600x310.png 1x, images/banner/foreground-03-3200x620.png 2x" alt="" width="1600" height="310"></a>
-      <!-- Page Footer-->
-      <footer class="section footer-variant-2 footer-modern context-dark section-top-image section-top-image-dark">
-        <div class="footer-variant-2-content">
-          <div class="container">
-            <div class="row row-40 justify-content-between">
-              <div class="col-sm-6 col-lg-4 col-xl-3">
-                <div class="oh-desktop">
-                  <div class="wow slideInRight" data-wow-delay="0s">
-                    <div class="footer-brand"><a href="index.html"><img src="images/logo-inverse-196x42.png" alt="" width="196" height="42"/></a></div>
-                    <p>Herber is an organic farm located in California. We offer healthy foods and products to our clients.</p>
-                    <ul class="footer-contacts d-inline-block d-md-block">
-                      <li>
-                        <div class="unit unit-spacing-xs">
-                          <div class="unit-left"><span class="icon fa fa-phone"></span></div>
-                          <div class="unit-body"><a class="link-phone" href="tel:#">+1 323-913-4688</a></div>
-                        </div>
-                      </li>
-                      <li>
-                        <div class="unit unit-spacing-xs">
-                          <div class="unit-left"><span class="icon fa fa-clock-o"></span></div>
-                          <div class="unit-body">
-                            <p>Mon-Sat: 07:00AM - 05:00PM</p>
-                          </div>
-                        </div>
-                      </li>
-                      <li>
-                        <div class="unit unit-spacing-xs">
-                          <div class="unit-left"><span class="icon fa fa-location-arrow"></span></div>
-                          <div class="unit-body"><a class="link-location" href="#">4730 Crystal Springs Dr, Los Angeles, CA 90027</a></div>
-                        </div>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-              <div class="col-sm-6 col-lg-4 col-xl-4">
-                <div class="oh-desktop">
-                  <div class="inset-top-18 wow slideInDown" data-wow-delay="0s">
-                    <h5>Newsletter</h5>
-                    <p>Join our email newsletter for news and tips.</p>
-                    <form class="rd-form rd-mailform" data-form-output="form-output-global" data-form-type="subscribe" method="post" action="bat/rd-mailform.php">
-                      <div class="form-wrap">
-                        <input class="form-input" id="subscribe-form-5-email" type="email" name="email" data-constraints="@Email @Required">
-                        <label class="form-label" for="subscribe-form-5-email">Enter Your E-mail</label>
-                      </div>
-                      <button class="button button-block button-white" type="submit">Subscribe</button>
-                    </form>
-                    <div class="group-lg group-middle">
-                      <p class="text-white">Follow Us</p>
-                      <div>
-                        <ul class="list-inline list-inline-sm footer-social-list-2">
-                          <li><a class="icon fa fa-facebook" href="#"></a></li>
-                          <li><a class="icon fa fa-twitter" href="#"></a></li>
-                          <li><a class="icon fa fa-google-plus" href="#"></a></li>
-                          <li><a class="icon fa fa-instagram" href="#"></a></li>
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="col-lg-3 col-xl-3">
-                <div class="oh-desktop">
-                  <div class="inset-top-18 wow slideInLeft" data-wow-delay="0s">
-                    <h5>Gallery</h5>
-                    <div class="row row-10 gutters-10" data-lightgallery="group">
-                      <div class="col-6 col-sm-3 col-lg-6">
-                        <!-- Thumbnail Classic-->
-                        <article class="thumbnail thumbnail-mary">
-                          <div class="thumbnail-mary-figure"><img src="images/gallery-image-1-129x120.jpg" alt="" width="129" height="120"/>
-                          </div>
-                          <div class="thumbnail-mary-caption"><a class="icon fl-bigmug-line-zoom60" href="images/gallery-original-7-800x1200.jpg" data-lightgallery="item"><img src="images/gallery-image-1-129x120.jpg" alt="" width="129" height="120"/></a>
-                          </div>
-                        </article>
-                      </div>
-                      <div class="col-6 col-sm-3 col-lg-6">
-                        <!-- Thumbnail Classic-->
-                        <article class="thumbnail thumbnail-mary">
-                          <div class="thumbnail-mary-figure"><img src="images/gallery-image-2-129x120.jpg" alt="" width="129" height="120"/>
-                          </div>
-                          <div class="thumbnail-mary-caption"><a class="icon fl-bigmug-line-zoom60" href="images/gallery-original-8-1200x800.jpg" data-lightgallery="item"><img src="images/gallery-image-2-129x120.jpg" alt="" width="129" height="120"/></a>
-                          </div>
-                        </article>
-                      </div>
-                      <div class="col-6 col-sm-3 col-lg-6">
-                        <!-- Thumbnail Classic-->
-                        <article class="thumbnail thumbnail-mary">
-                          <div class="thumbnail-mary-figure"><img src="images/gallery-image-3-129x120.jpg" alt="" width="129" height="120"/>
-                          </div>
-                          <div class="thumbnail-mary-caption"><a class="icon fl-bigmug-line-zoom60" href="images/gallery-original-9-800x1200.jpg" data-lightgallery="item"><img src="images/gallery-image-3-129x120.jpg" alt="" width="129" height="120"/></a>
-                          </div>
-                        </article>
-                      </div>
-                      <div class="col-6 col-sm-3 col-lg-6">
-                        <!-- Thumbnail Classic-->
-                        <article class="thumbnail thumbnail-mary">
-                          <div class="thumbnail-mary-figure"><img src="images/gallery-image-4-129x120.jpg" alt="" width="129" height="120"/>
-                          </div>
-                          <div class="thumbnail-mary-caption"><a class="icon fl-bigmug-line-zoom60" href="images/gallery-original-10-1200x800.jpg" data-lightgallery="item"><img src="images/gallery-image-4-129x120.jpg" alt="" width="129" height="120"/></a>
-                          </div>
-                        </article>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+        </section>
+
+        <!-- ===================== CHAMADA FINAL ===================== -->
+        <section class="ca-cta">
+          <div class="ca-container ca-cta-inner">
+            <div>
+              <h2>Falta um ponto de coleta no mapa?</h2>
+              <p>Ecopontos, cooperativas de catadores, supermercados e farmácias com coletores. Envie a sugestão: conferimos endereço, horário e materiais aceitos antes de publicar.</p>
+            </div>
+            <a class="ca-btn ca-btn-verde" href="contact-us.html">Sugerir um ponto</a>
+          </div>
+        </section>
+      </main>
+
+      <!-- ===================== RODAPÉ ===================== -->
+      <footer class="ca-rodape">
+        <div class="ca">
+          <div class="ca-container ca-rodape-grid">
+            <div class="ca-rodape-sobre">
+              <a class="ca-brand" href="index.html" aria-label="CataAção, página inicial">
+                <svg class="ca-brand-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+                  <defs><clipPath id="ca-pino-rodape"><path d="M16 2C9.9 2 5 6.7 5 12.6 5 20.4 16 30 16 30s11-9.6 11-17.4C27 6.7 22.1 2 16 2z"/></clipPath></defs>
+                  <g clip-path="url(#ca-pino-rodape)">
+                    <rect x="0" y="0" width="10.5" height="32" fill="#1c64c8"/>
+                    <rect x="10.5" y="0" width="5.5" height="32" fill="#d6332a"/>
+                    <rect x="16" y="0" width="5.5" height="32" fill="#1f8a3b"/>
+                    <rect x="21.5" y="0" width="10.5" height="32" fill="#f2c12e"/>
+                  </g>
+                  <circle cx="16" cy="12.5" r="4.4" fill="#22303a"/>
+                </svg>
+                <span>CataAção</span>
+              </a>
+              <p>Mapa colaborativo de pontos de coleta de resíduos e de denúncias de descarte irregular. Feito para ajudar moradores a descartar certo e tornar visíveis os problemas da cidade.</p>
+            </div>
+            <nav aria-label="Rodapé">
+              <h2>Navegação</h2>
+              <ul>
+                <li><a href="#mapa">Mapa</a></li>
+                <li><a href="#guia">Como descartar</a></li>
+                <li><a href="#denunciar">Denunciar</a></li>
+                <li><a href="about-us.html">Sobre</a></li>
+              </ul>
+            </nav>
+            <div>
+              <h2>Contato</h2>
+              <ul>
+                <li><a href="mailto:contato@seudominio.com.br">contato@seudominio.com.br</a></li>
+                <li><a href="contact-us.html">Formulário de contato</a></li>
+                <li><a href="contact-us.html">Sugerir um ponto de coleta</a></li>
+              </ul>
+            </div>
+            <div>
+              <h2>Emergências</h2>
+              <ul>
+                <li>Bombeiros: <a href="tel:193">193</a></li>
+                <li>Defesa Civil: <a href="tel:199">199</a></li>
+              </ul>
             </div>
           </div>
-        </div>
-        <div class="footer-variant-2-bottom-panel">
-          <div class="container">
-            <!-- Rights-->
-            <div class="group-sm group-sm-justify">
-              <p class="rights"><span>&copy;&nbsp;</span><span class="copyright-year"></span> <span>Herber</span>. All rights reserved
-              </p>
-              <p class="rights">Design&nbsp;by&nbsp;<a href="https://www.templatemonster.com/">Templatemonster</a></p>
-            </div>
+          <div class="ca-container ca-rodape-base">
+            <p>&copy; <span class="copyright-year"></span> CataAção. Dados cartográficos &copy; colaboradores do OpenStreetMap.</p>
+            <p>Layout base: <a href="https://www.templatemonster.com/" rel="noopener">Templatemonster</a></p>
           </div>
         </div>
       </footer>
     </div>
-    <!-- Global Mailform Output-->
-    <div class="snackbars" id="form-output-global"></div>
-    <!-- Javascript-->
+
+    <!-- Scripts do template (menu, preloader) -->
     <script src="js/core.min.js"></script>
     <script src="js/script.js"></script>
-    <!-- coded by Ragnar-->
+    <!-- Leaflet -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script>
+    (function () {
+      'use strict';
+
+      document.querySelectorAll('.copyright-year').forEach(function (el) {
+        if (!el.textContent) el.textContent = new Date().getFullYear();
+      });
+
+      if (typeof L === 'undefined') {
+        document.querySelectorAll('.ca-mapa, .ca-minimapa').forEach(function (el) {
+          el.innerHTML = '<p class="ca-mapa-erro">Não foi possível carregar o mapa. Verifique sua conexão e recarregue a página.</p>';
+        });
+        return;
+      }
+
+      /* ===================== CONFIGURAÇÃO ===================== */
+      const CONFIG = {
+        centro: [-22.9068, -43.1729], // centro inicial do mapa: ajuste para a sua cidade
+        zoom: 11,
+        tiles: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+        atribuicao: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        fotoMaxMB: 5,
+        descricaoMin: 15
+      };
+
+      const CATEGORIAS = {
+        reciclaveis:  { nome: 'Recicláveis' },
+        eletronicos:  { nome: 'Eletrônicos' },
+        pilhas:       { nome: 'Pilhas e baterias' },
+        oleo:         { nome: 'Óleo de cozinha' },
+        entulho:      { nome: 'Entulho e volumosos' },
+        medicamentos: { nome: 'Medicamentos' }
+      };
+
+      const TIPOS_DENUNCIA = {
+        descarte:       'Descarte irregular',
+        ponto_problema: 'Ponto de coleta com problema',
+        falta_ponto:    'Falta de ponto de coleta',
+        queima:         'Queima de lixo',
+        outro:          'Outro problema'
+      };
+
+      const STATUS = {
+        recebida:    { nome: 'Recebida',    cor: '#c2255c' },
+        analise:     { nome: 'Em análise',  cor: '#c2255c' },
+        encaminhada: { nome: 'Encaminhada', cor: '#e8590c' },
+        resolvida:   { nome: 'Resolvida',   cor: '#1f8a3b' },
+        descartada:  { nome: 'Descartada',  cor: '#868e96' }
+      };
+
+      /* ===================== DADOS DE DEMONSTRAÇÃO =====================
+         TODOS os registros abaixo são FICTÍCIOS.
+         Em produção, substitua por GET /api/pontos e GET /api/denuncias. */
+      const PONTOS = [
+        { id: 'p1', nome: 'Ecoponto Tijuca (exemplo)', bairro: 'Tijuca', endereco: 'Endereço fictício', horario: 'Seg a sáb, 8h às 17h', verificadoEm: '2026-08-20', lat: -22.9249, lng: -43.2311, aceita: ['reciclaveis', 'entulho', 'eletronicos'], demo: true },
+        { id: 'p2', nome: 'PEV Botafogo (exemplo)', bairro: 'Botafogo', endereco: 'Endereço fictício', horario: 'Todos os dias, 7h às 19h', verificadoEm: '2026-08-12', lat: -22.9519, lng: -43.1839, aceita: ['reciclaveis', 'oleo'], demo: true },
+        { id: 'p3', nome: 'Coleta de eletrônicos Méier (exemplo)', bairro: 'Méier', endereco: 'Endereço fictício', horario: 'Seg a sex, 9h às 18h', verificadoEm: '2026-07-30', lat: -22.9025, lng: -43.2785, aceita: ['eletronicos', 'pilhas'], demo: true },
+        { id: 'p4', nome: 'Ecoponto Barra (exemplo)', bairro: 'Barra da Tijuca', endereco: 'Endereço fictício', horario: 'Seg a sáb, 8h às 17h', verificadoEm: '2026-08-05', lat: -23.0004, lng: -43.3659, aceita: ['reciclaveis', 'entulho'], demo: true },
+        { id: 'p5', nome: 'Cooperativa Madureira (exemplo)', bairro: 'Madureira', endereco: 'Endereço fictício', horario: 'Seg a sex, 8h às 16h', verificadoEm: '2026-08-25', lat: -22.8729, lng: -43.3383, aceita: ['reciclaveis', 'oleo'], demo: true },
+        { id: 'p6', nome: 'Farmácia com coletor, Copacabana (exemplo)', bairro: 'Copacabana', endereco: 'Endereço fictício', horario: 'Todos os dias, 24h', verificadoEm: '2026-09-01', lat: -22.9690, lng: -43.1860, aceita: ['medicamentos', 'pilhas'], demo: true },
+        { id: 'p7', nome: 'PEV Centro (exemplo)', bairro: 'Centro', endereco: 'Endereço fictício', horario: 'Seg a sex, 7h às 19h', verificadoEm: '2026-08-18', lat: -22.9035, lng: -43.1790, aceita: ['reciclaveis'], demo: true }
+      ];
+
+      const DENUNCIAS = [
+        { id: 'CA-DEMO1', tipo: 'descarte', descricao: 'Sacos de lixo e restos de móveis acumulados na calçada há mais de uma semana.', referencia: 'Esquina próxima à praça', lat: -22.9302, lng: -43.2405, status: 'analise', apoios: 7, criadaEm: '2026-09-02T10:15:00-03:00', demo: true },
+        { id: 'CA-DEMO2', tipo: 'falta_ponto', descricao: 'Não há ponto de coleta de recicláveis perto; moradores acabam jogando tudo no lixo comum.', referencia: '', lat: -22.9035, lng: -43.5617, status: 'analise', apoios: 3, criadaEm: '2026-08-28T18:40:00-03:00', demo: true },
+        { id: 'CA-DEMO3', tipo: 'ponto_problema', descricao: 'Contêiner de recicláveis cheio e com a tampa quebrada; material espalhado no chão.', referencia: 'Ao lado do ponto de ônibus', lat: -22.9045, lng: -43.2760, status: 'encaminhada', apoios: 5, criadaEm: '2026-08-20T08:05:00-03:00', demo: true },
+        { id: 'CA-DEMO4', tipo: 'descarte', descricao: 'Entulho de obra deixado em terreno baldio.', referencia: '', lat: -22.9480, lng: -43.1890, status: 'resolvida', apoios: 2, criadaEm: '2026-08-02T14:30:00-03:00', demo: true }
+      ];
+
+      /* ===================== UTILITÁRIOS ===================== */
+      // Todo texto vindo de usuário passa por esc() antes de ir para o HTML (evita XSS).
+      const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+      function distanciaMetros(a, b) {
+        const R = 6371000, rad = Math.PI / 180;
+        const dLat = (b.lat - a.lat) * rad, dLng = (b.lng - a.lng) * rad;
+        const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLng / 2) ** 2;
+        return 2 * R * Math.asin(Math.sqrt(h));
+      }
+      const formatarDistancia = (m) => (m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1).replace('.', ',')} km`);
+      function formatarData(valor) {
+        if (/^\d{4}-\d{2}-\d{2}$/.test(valor)) return valor.split('-').reverse().join('/'); // evita erro de fuso
+        return new Date(valor).toLocaleDateString('pt-BR');
+      }
+      const linkRota = (lat, lng) => `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+      const adicionarBase = (m) => L.tileLayer(CONFIG.tiles, { maxZoom: 19, attribution: CONFIG.atribuicao }).addTo(m);
+
+      function obterPosicao() {
+        return new Promise((resolve, reject) => {
+          if (!('geolocation' in navigator)) { reject(new Error('indisponivel')); return; }
+          navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 });
+        });
+      }
+      function mensagemErroGeo(err) {
+        if (err && err.code === 1) return 'Permissão de localização negada. Libere o acesso no navegador ou marque o local manualmente.';
+        if (err && err.code === 3) return 'A localização demorou demais para responder. Tente novamente.';
+        return 'Não foi possível obter sua localização neste dispositivo.';
+      }
+
+      /* ===================== MAPA PRINCIPAL ===================== */
+      const mapa = L.map('mapa-principal', { scrollWheelZoom: false }).setView(CONFIG.centro, CONFIG.zoom);
+      adicionarBase(mapa);
+      // Zoom pela rolagem só depois de interagir com o mapa, para não prender a rolagem da página
+      mapa.on('click focus', () => mapa.scrollWheelZoom.enable());
+      mapa.on('mouseout blur', () => mapa.scrollWheelZoom.disable());
+
+      const camadaPontos = L.layerGroup().addTo(mapa);
+      const camadaDenuncias = L.layerGroup().addTo(mapa);
+      const marcadoresPontos = new Map();
+      const marcadoresDenuncias = new Map();
+      const apoiadas = new Set();
+
+      const filtrosCategorias = document.getElementById('filtros-categorias');
+      const chkDenuncias = document.getElementById('filtro-denuncias');
+      const chkResolvidas = document.getElementById('filtro-resolvidas');
+      const listaPontos = document.getElementById('lista-pontos');
+      const totalLista = document.getElementById('total-lista');
+
+      const iconePonto = (cat) => L.divIcon({ className: `ca-pin-ponto ca-cat-${cat}`, html: '', iconSize: [22, 22], iconAnchor: [11, 11], popupAnchor: [0, -12] });
+      const iconeDenuncia = (d, novo) => L.divIcon({
+        className: `ca-pin-denuncia ca-status-${d.status}${novo ? ' ca-pin-novo' : ''}`,
+        html: '<span class="ca-losango"></span><b aria-hidden="true">!</b>',
+        iconSize: [26, 26], iconAnchor: [13, 13], popupAnchor: [0, -14]
+      });
+
+      function popupPonto(p) {
+        const itens = p.aceita.map((c) => `<li><span class="ca-cor ca-cat-${c}" aria-hidden="true"></span>${esc(CATEGORIAS[c].nome)}</li>`).join('');
+        return `<div class="ca-popup">
+          <p class="ca-popup-tipo">Ponto de coleta</p>
+          <h4>${esc(p.nome)}</h4>
+          <p>${esc(p.endereco)}, ${esc(p.bairro)}</p>
+          <p><strong>Horário:</strong> ${esc(p.horario)}</p>
+          <p><strong>Aceita:</strong></p>
+          <ul>${itens}</ul>
+          <p class="ca-small">Informações conferidas em ${formatarData(p.verificadoEm)}</p>
+          <p><a href="${linkRota(p.lat, p.lng)}" target="_blank" rel="noopener">Traçar rota</a></p>
+          ${p.demo ? '<span class="ca-popup-demo">Exemplo fictício</span>' : ''}
+        </div>`;
+      }
+
+      function popupDenuncia(d) {
+        const st = STATUS[d.status];
+        const emRevisao = d.status === 'recebida';
+        const podeApoiar = d.status !== 'resolvida' && d.status !== 'descartada';
+        const jaApoiou = apoiadas.has(d.id);
+        const pessoas = d.apoios === 1 ? '1 pessoa confirmou' : `${d.apoios} pessoas confirmaram`;
+        return `<div class="ca-popup">
+          <p class="ca-popup-tipo">Denúncia ${esc(d.id)}</p>
+          <h4>${esc(TIPOS_DENUNCIA[d.tipo] || 'Denúncia')}</h4>
+          <p>${emRevisao ? '<em>Descrição aguardando revisão.</em>' : esc(d.descricao)}</p>
+          ${!emRevisao && d.referencia ? `<p><strong>Referência:</strong> ${esc(d.referencia)}</p>` : ''}
+          <p><strong>Status:</strong> <span class="ca-status" style="--st:${st.cor}">${esc(st.nome)}</span></p>
+          <p class="ca-small">Registrada em ${formatarData(d.criadaEm)}. ${pessoas}.</p>
+          ${podeApoiar ? `<button type="button" class="ca-btn ca-btn-contorno ca-btn-sm" data-apoiar="${esc(d.id)}"${jaApoiou ? ' disabled' : ''}>${jaApoiou ? 'Confirmação registrada' : 'Também vi isso'}</button>` : ''}
+          ${d.demo ? '<br><span class="ca-popup-demo">Exemplo fictício</span>' : ''}
+        </div>`;
+      }
+
+      PONTOS.forEach((p) => {
+        const m = L.marker([p.lat, p.lng], { icon: iconePonto(p.aceita[0]), title: p.nome, keyboard: true });
+        m.bindPopup(() => popupPonto(p));
+        marcadoresPontos.set(p.id, m);
+      });
+
+      function adicionarMarcadorDenuncia(d, novo) {
+        const m = L.marker([d.lat, d.lng], { icon: iconeDenuncia(d, novo), title: `Denúncia: ${TIPOS_DENUNCIA[d.tipo] || ''}`, riseOnHover: true, keyboard: true });
+        m.bindPopup(() => popupDenuncia(d));
+        marcadoresDenuncias.set(d.id, m);
+      }
+      DENUNCIAS.forEach((d) => adicionarMarcadorDenuncia(d, false));
+
+      // "Também vi isso": reforça uma denúncia existente em vez de criar duplicata
+      mapa.on('popupopen', (e) => {
+        const el = e.popup.getElement();
+        const btn = el && el.querySelector('[data-apoiar]:not([disabled])');
+        if (!btn) return;
+        btn.addEventListener('click', () => {
+          const d = DENUNCIAS.find((x) => x.id === btn.dataset.apoiar);
+          if (!d || apoiadas.has(d.id)) return;
+          apoiadas.add(d.id);
+          d.apoios += 1;
+          // Produção: POST /api/denuncias/{id}/apoios — limitar a 1 por pessoa no servidor
+          e.popup.update();
+        }, { once: true });
+      });
+
+      /* ---------- Filtros ---------- */
+      filtrosCategorias.innerHTML = Object.keys(CATEGORIAS).map((id) => {
+        const total = PONTOS.filter((p) => p.aceita.includes(id)).length;
+        return `<label class="ca-filtro"><input type="checkbox" value="${id}" checked><span class="ca-cor ca-cat-${id}" aria-hidden="true"></span><span class="ca-filtro-nome">${esc(CATEGORIAS[id].nome)}</span><span class="ca-qtd" aria-label="${total} pontos">${total}</span></label>`;
+      }).join('');
+
+      const categoriasSelecionadas = () => new Set(Array.from(filtrosCategorias.querySelectorAll('input:checked'), (i) => i.value));
+      function pontosVisiveis() {
+        const sel = categoriasSelecionadas();
+        return PONTOS.filter((p) => p.aceita.some((c) => sel.has(c)));
+      }
+
+      function renderPontos() {
+        const sel = categoriasSelecionadas();
+        const visiveis = pontosVisiveis();
+        camadaPontos.clearLayers();
+        visiveis.forEach((p) => {
+          const m = marcadoresPontos.get(p.id);
+          m.setIcon(iconePonto(p.aceita.find((c) => sel.has(c)))); // cor = primeiro tipo selecionado que o ponto aceita
+          camadaPontos.addLayer(m);
+        });
+        totalLista.textContent = visiveis.length;
+        listaPontos.innerHTML = visiveis.length
+          ? visiveis.map((p) => `<li><button type="button" class="ca-link" data-ponto="${esc(p.id)}">${esc(p.nome)}</button><span class="ca-small">${esc(p.bairro)}</span></li>`).join('')
+          : '<li class="ca-small">Nenhum ponto para os filtros escolhidos.</li>';
+      }
+
+      function renderDenuncias() {
+        camadaDenuncias.clearLayers();
+        if (!chkDenuncias.checked) return;
+        DENUNCIAS.forEach((d) => {
+          if (d.status === 'descartada') return;
+          if (d.status === 'resolvida' && !chkResolvidas.checked) return;
+          camadaDenuncias.addLayer(marcadoresDenuncias.get(d.id));
+        });
+      }
+
+      const marcarCategorias = (valor) => {
+        filtrosCategorias.querySelectorAll('input').forEach((i) => { i.checked = valor; });
+        renderPontos();
+      };
+
+      filtrosCategorias.addEventListener('change', renderPontos);
+      chkDenuncias.addEventListener('change', renderDenuncias);
+      chkResolvidas.addEventListener('change', renderDenuncias);
+      document.getElementById('filtro-todos').addEventListener('click', () => marcarCategorias(true));
+      document.getElementById('filtro-nenhum').addEventListener('click', () => marcarCategorias(false));
+
+      listaPontos.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-ponto]');
+        if (!b) return;
+        const p = PONTOS.find((x) => x.id === b.dataset.ponto);
+        mapa.setView([p.lat, p.lng], 15);
+        marcadoresPontos.get(p.id).openPopup();
+      });
+
+      // Links "Ver pontos no mapa" do guia
+      document.querySelectorAll('[data-filtrar]').forEach((b) => b.addEventListener('click', () => {
+        const alvo = b.dataset.filtrar;
+        filtrosCategorias.querySelectorAll('input').forEach((i) => { i.checked = i.value === alvo; });
+        renderPontos();
+        document.getElementById('mapa').scrollIntoView({ behavior: 'smooth' });
+        const vis = pontosVisiveis();
+        if (vis.length) setTimeout(() => mapa.fitBounds(L.latLngBounds(vis.map((p) => [p.lat, p.lng])), { padding: [50, 50], maxZoom: 14 }), 450);
+      }));
+
+      /* ---------- Ponto mais próximo ---------- */
+      const btnProximo = document.getElementById('btn-proximo');
+      const saidaProximo = document.getElementById('saida-proximo');
+      let marcadorUsuario = null;
+
+      btnProximo.addEventListener('click', async () => {
+        const candidatos = pontosVisiveis();
+        if (!candidatos.length) { saidaProximo.textContent = 'Selecione ao menos um tipo de resíduo nos filtros.'; return; }
+        btnProximo.disabled = true;
+        saidaProximo.textContent = 'Obtendo sua localização…';
+        try {
+          const pos = await obterPosicao();
+          const eu = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          let melhor = null, menor = Infinity;
+          candidatos.forEach((p) => { const d = distanciaMetros(eu, p); if (d < menor) { menor = d; melhor = p; } });
+          if (marcadorUsuario) marcadorUsuario.setLatLng([eu.lat, eu.lng]);
+          else marcadorUsuario = L.marker([eu.lat, eu.lng], { icon: L.divIcon({ className: 'ca-pin-usuario', iconSize: [18, 18], iconAnchor: [9, 9] }), title: 'Você está aqui', keyboard: false }).addTo(mapa);
+          mapa.fitBounds(L.latLngBounds([[eu.lat, eu.lng], [melhor.lat, melhor.lng]]), { padding: [60, 60], maxZoom: 16 });
+          marcadoresPontos.get(melhor.id).openPopup();
+          saidaProximo.innerHTML = `Mais próximo: <strong>${esc(melhor.nome)}</strong>, a ${formatarDistancia(menor)} em linha reta. <a href="${linkRota(melhor.lat, melhor.lng)}" target="_blank" rel="noopener">Traçar rota</a>`;
+        } catch (err) {
+          saidaProximo.textContent = mensagemErroGeo(err);
+        } finally {
+          btnProximo.disabled = false;
+        }
+      });
+
+      /* ===================== FORMULÁRIO DE DENÚNCIA ===================== */
+      const form = document.getElementById('form-denuncia');
+      const campoTipo = document.getElementById('den-tipo');
+      const campoLat = document.getElementById('den-lat');
+      const campoLng = document.getElementById('den-lng');
+      const campoRef = document.getElementById('den-referencia');
+      const campoDesc = document.getElementById('den-descricao');
+      const campoFoto = document.getElementById('den-foto');
+      const campoEmail = document.getElementById('den-email');
+      const campoTermo = document.getElementById('den-termo');
+      const textoLocal = document.getElementById('den-local-texto');
+      const contador = document.getElementById('den-contador');
+      const previewFoto = document.getElementById('den-foto-preview');
+      const btnEnviar = document.getElementById('den-enviar');
+      const saidaForm = document.getElementById('den-saida');
+      const TEXTO_LOCAL_VAZIO = 'Nenhum local marcado. Toque no mapa para marcar.';
+      let fotoSelecionada = null;
+      let urlPreview = null;
+
+      function mostrarErro(campo, msg) {
+        const el = document.getElementById(`erro-${campo}`);
+        if (el) { el.textContent = msg; el.hidden = false; }
+        form.querySelectorAll(`[data-campo="${campo}"]`).forEach((i) => i.setAttribute('aria-invalid', 'true'));
+      }
+      function limparErro(campo) {
+        const el = document.getElementById(`erro-${campo}`);
+        if (el) { el.textContent = ''; el.hidden = true; }
+        form.querySelectorAll(`[data-campo="${campo}"]`).forEach((i) => i.removeAttribute('aria-invalid'));
+      }
+
+      /* ---------- Mapa do formulário ---------- */
+      const mapaForm = L.map('mapa-denuncia').setView(CONFIG.centro, CONFIG.zoom);
+      adicionarBase(mapaForm);
+      const iconeLocal = L.divIcon({ className: 'ca-pin-local', html: '<span></span>', iconSize: [22, 22], iconAnchor: [11, 26] });
+      let marcadorLocal = null;
+
+      function definirLocal(latlng, aproximar) {
+        if (!marcadorLocal) {
+          marcadorLocal = L.marker(latlng, { icon: iconeLocal, draggable: true, title: 'Local da denúncia (arraste para ajustar)' }).addTo(mapaForm);
+          marcadorLocal.on('dragend', () => definirLocal(marcadorLocal.getLatLng(), false));
+        } else {
+          marcadorLocal.setLatLng(latlng);
+        }
+        campoLat.value = latlng.lat.toFixed(6);
+        campoLng.value = latlng.lng.toFixed(6);
+        textoLocal.textContent = `Local marcado (${latlng.lat.toFixed(5)}, ${latlng.lng.toFixed(5)}). Arraste o marcador para ajustar.`;
+        if (aproximar) mapaForm.setView(latlng, 17);
+        limparErro('local');
+      }
+      mapaForm.on('click', (e) => definirLocal(e.latlng, false));
+
+      document.getElementById('den-minha-localizacao').addEventListener('click', async (ev) => {
+        const btn = ev.currentTarget;
+        btn.disabled = true;
+        textoLocal.textContent = 'Obtendo sua localização…';
+        try {
+          const pos = await obterPosicao();
+          definirLocal(L.latLng(pos.coords.latitude, pos.coords.longitude), true);
+          if (pos.coords.accuracy > 100) {
+            textoLocal.textContent += ` Precisão baixa (cerca de ${Math.round(pos.coords.accuracy)} m): confira se o marcador está no lugar certo.`;
+          }
+        } catch (err) {
+          textoLocal.textContent = mensagemErroGeo(err);
+        } finally {
+          btn.disabled = false;
+        }
+      });
+
+      /* ---------- Campos ---------- */
+      const atualizarContador = () => { contador.textContent = `${campoDesc.value.length}/${campoDesc.maxLength}`; };
+      campoDesc.addEventListener('input', () => {
+        atualizarContador();
+        if (campoDesc.value.trim().length >= CONFIG.descricaoMin) limparErro('descricao');
+      });
+      campoTipo.addEventListener('change', () => limparErro('tipo'));
+      campoTermo.addEventListener('change', () => limparErro('termo'));
+      campoEmail.addEventListener('input', () => limparErro('email'));
+      atualizarContador();
+
+      function limparFoto() {
+        if (urlPreview) URL.revokeObjectURL(urlPreview);
+        urlPreview = null;
+        fotoSelecionada = null;
+        campoFoto.value = '';
+        previewFoto.innerHTML = '';
+      }
+      campoFoto.addEventListener('change', () => {
+        const f = campoFoto.files && campoFoto.files[0];
+        if (urlPreview) URL.revokeObjectURL(urlPreview);
+        urlPreview = null;
+        fotoSelecionada = null;
+        previewFoto.innerHTML = '';
+        limparErro('foto');
+        if (!f) return;
+        if (!['image/jpeg', 'image/png', 'image/webp'].includes(f.type)) {
+          mostrarErro('foto', 'Envie uma imagem JPG, PNG ou WEBP.');
+          campoFoto.value = '';
+          return;
+        }
+        if (f.size > CONFIG.fotoMaxMB * 1024 * 1024) {
+          mostrarErro('foto', `A foto deve ter no máximo ${CONFIG.fotoMaxMB} MB.`);
+          campoFoto.value = '';
+          return;
+        }
+        fotoSelecionada = f;
+        urlPreview = URL.createObjectURL(f);
+        previewFoto.innerHTML = `<img src="${urlPreview}" alt="Pré-visualização da foto escolhida"><button type="button" class="ca-link" id="den-remover-foto">Remover foto</button>`;
+        document.getElementById('den-remover-foto').addEventListener('click', limparFoto);
+      });
+
+      function validar() {
+        let primeiro = null;
+        const falhar = (campo, msg, el) => { mostrarErro(campo, msg); if (!primeiro) primeiro = el; };
+        ['tipo', 'local', 'descricao', 'email', 'termo'].forEach(limparErro);
+
+        if (!campoTipo.value) falhar('tipo', 'Escolha o tipo do problema.', campoTipo);
+        if (!campoLat.value || !campoLng.value) falhar('local', 'Marque o local no mapa ou use sua localização.', document.getElementById('den-minha-localizacao'));
+        if (campoDesc.value.trim().length < CONFIG.descricaoMin) falhar('descricao', `Descreva o problema com pelo menos ${CONFIG.descricaoMin} caracteres.`, campoDesc);
+        const email = campoEmail.value.trim();
+        if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) falhar('email', 'Informe um e-mail válido ou deixe o campo em branco.', campoEmail);
+        if (!campoTermo.checked) falhar('termo', 'Confirme a declaração para enviar.', campoTermo);
+
+        if (primeiro) primeiro.focus();
+        return !primeiro;
+      }
+
+      function limparFormulario() {
+        form.reset();
+        campoLat.value = '';
+        campoLng.value = '';
+        if (marcadorLocal) { mapaForm.removeLayer(marcadorLocal); marcadorLocal = null; }
+        textoLocal.textContent = TEXTO_LOCAL_VAZIO;
+        limparFoto();
+        atualizarContador();
+      }
+
+      /* ---------- Envio ----------
+         SUBSTITUA esta função pela chamada à sua API. Exemplo:
+
+         const dados = new FormData();
+         dados.append('denuncia', JSON.stringify(payload));
+         if (foto) dados.append('foto', foto);
+         const resp = await fetch('/api/denuncias', { method: 'POST', body: dados });
+         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+         return resp.json(); // o servidor devolve só os campos públicos: { id, tipo, lat, lng, status, criadaEm, ... }
+
+         O servidor precisa: validar tudo de novo, aplicar captcha e limite de envios,
+         remover metadados (EXIF/GPS) da foto e nunca devolver o e-mail. */
+      async function enviarDenuncia(payload, foto) { // eslint-disable-line no-unused-vars
+        await new Promise((r) => setTimeout(r, 700));
+        const publico = Object.assign({}, payload);
+        delete publico.email; // e-mail nunca vai para o objeto público
+        return Object.assign(publico, {
+          id: `CA-${Date.now().toString(36).toUpperCase()}`,
+          status: 'recebida',
+          apoios: 0,
+          criadaEm: new Date().toISOString()
+        });
+      }
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        saidaForm.innerHTML = '';
+        if (!validar()) {
+          saidaForm.innerHTML = '<p class="ca-falha">Revise os campos indicados acima.</p>';
+          return;
+        }
+        const payload = {
+          tipo: campoTipo.value,
+          descricao: campoDesc.value.trim(),
+          referencia: campoRef.value.trim(),
+          lat: Number(campoLat.value),
+          lng: Number(campoLng.value),
+          email: campoEmail.value.trim() || null
+        };
+        btnEnviar.disabled = true;
+        btnEnviar.textContent = 'Enviando denúncia…';
+        try {
+          const nova = await enviarDenuncia(payload, fotoSelecionada);
+          DENUNCIAS.push(nova);
+          adicionarMarcadorDenuncia(nova, true);
+          chkDenuncias.checked = true;
+          renderDenuncias();
+          saidaForm.innerHTML = `<div class="ca-sucesso"><strong>Denúncia enviada.</strong> Protocolo <code>${esc(nova.id)}</code>. Ela já aparece no mapa com o status “Recebida”; a descrição fica visível depois da revisão. <button type="button" class="ca-link" data-ver-denuncia="${esc(nova.id)}">Ver no mapa</button></div>`;
+          limparFormulario();
+        } catch (err) {
+          saidaForm.innerHTML = '<p class="ca-falha">A denúncia não foi enviada por falha de conexão. Seus dados continuam no formulário: tente enviar de novo.</p>';
+        } finally {
+          btnEnviar.disabled = false;
+          btnEnviar.textContent = 'Enviar denúncia';
+        }
+      });
+
+      saidaForm.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-ver-denuncia]');
+        if (!b) return;
+        const m = marcadoresDenuncias.get(b.dataset.verDenuncia);
+        if (!m) return;
+        document.getElementById('mapa').scrollIntoView({ behavior: 'smooth' });
+        setTimeout(() => { mapa.setView(m.getLatLng(), 16); m.openPopup(); }, 450);
+      });
+
+      /* ===================== INICIALIZAÇÃO ===================== */
+      renderPontos();
+      renderDenuncias();
+      // Recalcula o tamanho dos mapas depois que o preloader do template sai
+      window.addEventListener('load', () => { mapa.invalidateSize(); mapaForm.invalidateSize(); });
+    })();
+    </script>
   </body>
 </html>
